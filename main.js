@@ -13,9 +13,7 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 
-camera.position.setX(0);
-camera.position.setY(2);
-camera.position.setZ(-2);
+camera.position.setY(5);
 
 renderer.render(scene, camera);
 
@@ -30,6 +28,8 @@ pointLight.position.set(5, 5, 5);
 
 const ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(pointLight, ambientLight);
+const gridHelper = new THREE.GridHelper(200, 50);
+scene.add(gridHelper);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 
