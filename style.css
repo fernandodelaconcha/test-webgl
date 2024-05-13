@@ -4,7 +4,8 @@ canvas {
   left: 0;
 }
 
-html, body {
-  height: 100%;
-  width: 100%;
+html, body, canvas {
+  margin: 0;
+  height: 100% !important;
+  width: 100% !important;
 }
