@@ -7,11 +7,12 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color("#FFEECC");
 
 const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 1000);
-camera.position.set(-17, 31, 33);
+camera.position.set(0, 25, 25);
 
 const renderer = new THREE.WebGLRenderer({
   canvas: document.querySelector('#bg'),
   antialias: true,
+  alpha: true
 });
 
 renderer.setPixelRatio(devicePixelRatio);
@@ -21,15 +22,19 @@ renderer.physicallyCorrectLights = true;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-const pointLight = new THREE.PointLight(new THREE.Color("#FFCB8E").convertSRGBToLinear(), 400, 200);
-pointLight.position.set(10, 20, 10);
-pointLight.castShadow = true;
-pointLight.shadow.mapSize.width = 512;
-pointLight.shadow.mapSize.height = 512;
-pointLight.shadow.camera.near = .5;
-pointLight.shadow.camera.far = 500;
+const sunLight = new THREE.DirectionalLight(new THREE.Color("#FFCB8E").convertSRGBToLinear(), 3.5);
+sunLight.position.set(10, 20, 10);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.width = 512;
+sunLight.shadow.mapSize.height = 512;
+sunLight.shadow.camera.near = .5;
+sunLight.shadow.camera.far = 100;
+sunLight.shadow.camera.left = -10;
+sunLight.shadow.camera.bottom = -10;
+sunLight.shadow.camera.top = 10;
+sunLight.shadow.camera.right = 10;
 
-scene.add(pointLight);
+scene.add(sunLight);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.dampingFactor = 0.05;
@@ -131,12 +136,28 @@ scene.add(mapFloor);
 
 clouds();
 
-function animate() {
+const clock = new THREE.Clock();
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2(99999, 99999);
+
+function onPointerMove(event) {
+  pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+  pointer.y = (event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera( pointer, camera );
+	const intersects = raycaster.intersectObjects( scene.children );
+  if (intersects.length > 0 && intersects[0].object) {
+    intersects[0].object.material.color.set( 0xff0000 );
+  }
+}
+
+function animate() {  
+  let delta = clock.getDelta();
   requestAnimationFrame(animate);
   controls.update();
   renderer.render(scene, camera);
 }
 
+window.addEventListener( 'pointermove', onPointerMove );
 animate();
 
 function hexGeometry(height, position) {
