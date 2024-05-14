@@ -1,10 +1,13 @@
 import './style.css';
 import * as THREE from 'three';
+import anime from 'animejs';
 import { BufferGeometryUtils, RGBELoader, SimplexNoise } from 'three/examples/jsm/Addons.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
+let sunBackground = document.querySelector(".sun-background");
+let moonBackground = document.querySelector(".moon-background");
+
 const scene = new THREE.Scene();
-scene.background = new THREE.Color("#FFEECC");
 
 const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 1000);
 camera.position.set(0, 25, 25);
@@ -33,6 +36,18 @@ sunLight.shadow.camera.left = -10;
 sunLight.shadow.camera.bottom = -10;
 sunLight.shadow.camera.top = 10;
 sunLight.shadow.camera.right = 10;
+
+const moonLight = new THREE.DirectionalLight(new THREE.Color("#77ccff").convertSRGBToLinear(), 0);
+moonLight.position.set(-10, 20, 10);
+moonLight.castShadow = true;
+moonLight.shadow.mapSize.width = 512;
+moonLight.shadow.mapSize.height = 512;
+moonLight.shadow.camera.near = .5;
+moonLight.shadow.camera.far = 100;
+moonLight.shadow.camera.left = -10;
+moonLight.shadow.camera.bottom = -10;
+moonLight.shadow.camera.top = 10;
+moonLight.shadow.camera.right = 10;
 
 scene.add(sunLight);
 
@@ -139,6 +154,8 @@ clouds();
 const clock = new THREE.Clock();
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2(99999, 99999);
+let daytime = true;
+let animating = false;
 
 function onPointerMove(event) {
   pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -150,15 +167,52 @@ function onPointerMove(event) {
   }
 }
 
-function animate() {  
+function onKeyPress(event) {
+  if (event.key != "Enter") return;
+
+  if (animating) return;
+
+  let anim;
+  if (!daytime) {
+    anim = [1, 0];
+  } else {
+    anim = [0, 1];
+  }
+
+  animating = true;
+  let obj = {t: 0};
+  anime({
+    targets: obj,
+    t: anim,
+    complete: () => {
+      animating = false;
+      daytime = !daytime;
+    },
+    update: () => {
+      sunLight.intensity = 3.5 * (1 - obj.t);
+      moonLight.intensity = 3.5 * obj.t;
+      
+      sunLight.position.setY(20 * (1 - obj.t));
+      moonLight.position.setY(20 * obj.t);
+
+      sunBackground.style.opacity = 1 - obj.t;
+      moonBackground.style.opacity = obj.t;
+    },
+    easing: 'easeInOutSine',
+    duration: 500,
+  })
+}
+
+function gameLoop() {  
   let delta = clock.getDelta();
-  requestAnimationFrame(animate);
+  requestAnimationFrame(gameLoop);
   controls.update();
   renderer.render(scene, camera);
 }
 
-window.addEventListener( 'pointermove', onPointerMove );
-animate();
+window.addEventListener('pointermove', onPointerMove );
+window.addEventListener('keypress', onKeyPress);
+gameLoop();
 
 function hexGeometry(height, position) {
   let geo = new THREE.CylinderGeometry(1, 1, height, 6, 1, false);
