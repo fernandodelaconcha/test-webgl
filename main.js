@@ -1,11 +1,15 @@
 import './style.css';
 import * as THREE from 'three';
 import anime from 'animejs';
+import Alea from 'alea';
 import { BufferGeometryUtils, RGBELoader, SimplexNoise } from 'three/examples/jsm/Addons.js';
 import { OrbitControls } from 'three/examples/jsm/Addons.js';
 import Tile from './Tile';
+import { createNoise2D } from 'simplex-noise';
+
 let sunBackground = document.querySelector(".sun-background");
 let moonBackground = document.querySelector(".moon-background");
+let canvas = document.querySelector('#bg');
 
 // let sunBackground : HTMLElement = document.querySelector(".sun-background") as HTMLElement;
 // let moonBackground : HTMLElement = document.querySelector(".moon-background") as HTMLElement;
@@ -16,7 +20,7 @@ const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 10
 camera.position.set(0, 25, 25);
 
 const renderer = new THREE.WebGLRenderer({
-  canvas: document.querySelector('#bg'),
+  canvas,
   antialias: true,
   alpha: true
 });
@@ -64,20 +68,15 @@ let pmrem = new THREE.PMREMGenerator(renderer);
 let envmapTexture = await new RGBELoader().setDataType(THREE.FloatType).loadAsync("assets/envmap.hdr");
 let envmap = pmrem.fromEquirectangular(envmapTexture).texture;
 
-let stoneGeometry = new THREE.BoxGeometry(0,0,0);
-let dirtGeometry = new THREE.BoxGeometry(0,0,0);
-let dirt2Geometry = new THREE.BoxGeometry(0,0,0);
-let grassGeometry = new THREE.BoxGeometry(0,0,0);
-let sandGeometry = new THREE.BoxGeometry(0,0,0);
-let waterGeometry = new THREE.BoxGeometry(0,0,0);
-
-const simplex = new SimplexNoise();
 const MAX_HEIGHT = 10;
 const STONE_HEIGHT = MAX_HEIGHT * .8;
 const DIRT_HEIGHT = MAX_HEIGHT * .7;
 const GRASS_HEIGHT = MAX_HEIGHT * .5;
 const SAND_HEIGHT = MAX_HEIGHT * .3;
 const DIRT2_HEIGHT = MAX_HEIGHT * 0;
+
+const seed = window.crypto.randomUUID()
+const noise2D = createNoise2D(Alea(seed));
 
 let textures = {
   dirt: await new THREE.TextureLoader().loadAsync("assets/dirt.png"),
@@ -88,29 +87,37 @@ let textures = {
   stone: await new THREE.TextureLoader().loadAsync("assets/stone.png"),
 }
 
+const treeMaterial = new THREE.MeshStandardMaterial({
+  envMap: envmap,
+  envMapIntensity: .75,
+  flatShading: true,
+  map: textures.grass
+})
+const stoneMaterial = new THREE.MeshStandardMaterial({
+  envMap: envmap,
+  envMapIntensity: .75,
+  flatShading: true,
+  map: textures.stone
+})
+
 const tiles = [];
 for (let i = -15; i <= 15; i++) {
   for (let j = -15; j <=15; j++) {
-    let position = new tileToPosition(i, j);
+    const position = new tileToPosition(i, j);
 
     if (position.length() > 16) continue;
-    let noise = (simplex.noise(i * .1, j * .1) + 1) * .5;
+    let noise = (noise2D(i * .1, j * .1) + 1) * .5;
     noise = Math.pow(noise, 1.5);
-    makeHex(noise * MAX_HEIGHT, position);
-    // const height = Math.round(noise * MAX_HEIGHT);
-    // const tile = new Tile(new THREE.Vector2(i, j), height);
-    // const mesh = tile.createMesh();
-    // tiles.push(tile);
-    // scene.add(mesh)
+    
+    const height = noise * MAX_HEIGHT;
+    if (height < 3) continue;
+    const tile = new Tile(new THREE.Vector2(i, j), height);
+    const texture = getRandomTexture(height, position);
+    const mesh = tile.createMesh(createMaterial(texture));
+    tiles.push(tile);
+    scene.add(mesh)
   }
 }
-
-let stoneMesh = hexMesh(stoneGeometry, textures.stone);
-let grassMesh = hexMesh(grassGeometry, textures.grass);
-let dirtMesh = hexMesh(dirtGeometry, textures.dirt);
-let dirt2Mesh = hexMesh(dirt2Geometry, textures.dirt2);
-let sandMesh = hexMesh(sandGeometry, textures.sand);
-scene.add(stoneMesh, grassMesh, dirtMesh, dirt2Mesh, sandMesh);
 
 let seaMesh = new THREE.Mesh(
   new THREE.CylinderGeometry(17, 17, MAX_HEIGHT * .2, 50),
@@ -158,20 +165,31 @@ mapFloor.receiveShadow = true;
 mapFloor.position.set(0, -MAX_HEIGHT * .05, 0)
 scene.add(mapFloor);
 
-clouds();
+spawn_clouds();
 
 const clock = new THREE.Clock();
 const raycaster = new THREE.Raycaster();
-const pointer = new THREE.Vector2(99999, 99999);
+const pointer = new THREE.Vector2(0, 0);
 let daytime = true;
 let animating = false;
 
 function onPointerMove(event) {
-  pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-  pointer.y = (event.clientY / window.innerHeight) * 2 + 1;
+  event.preventDefault();
+  scene.children.forEach(object => {
+    if (object.name == "Tile")
+      object.material.color.set("white");
+  });
+
+  pointer.x = ( (event.clientX + canvas.offsetLeft) / canvas.width ) * 2 - 1;
+  pointer.y = - ( (event.clientY - canvas.offsetTop) / canvas.height ) * 2 + 1;
+
+  // pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+  // pointer.y = (event.clientY / window.innerHeight) * 2 + 1;
+
   raycaster.setFromCamera( pointer, camera );
 	const intersects = raycaster.intersectObjects( scene.children );
-  if (intersects.length > 0 && intersects[0].object) {
+  console.log(intersects[0]?.object.name);
+  if (intersects.length > 0 && intersects[0].object && intersects[0].object.name == "Tile") {
     intersects[0].object.material.color.set( 0xff0000 );
   }
 }
@@ -223,48 +241,7 @@ window.addEventListener('pointermove', onPointerMove );
 window.addEventListener('keypress', onKeyPress);
 gameLoop();
 
-function hexGeometry(height, position) {
-  let geo = new THREE.CylinderGeometry(1, 1, height, 6, 1, false);
-  geo.translate(position.x, height * 0.5, position.y);
-
-  return geo;
-}
-
-function makeHex(height, position) {
-  let geo = hexGeometry(height, position);
-
-  if (height > STONE_HEIGHT) {
-    stoneGeometry = BufferGeometryUtils.mergeGeometries([geo, stoneGeometry]);
-    if (Math.random() > .8) {
-      stoneGeometry = BufferGeometryUtils.mergeGeometries([stoneGeometry, stone(height, position)])
-    }
-
-  } else if (height > DIRT_HEIGHT) {
-    dirtGeometry = BufferGeometryUtils.mergeGeometries([geo, dirtGeometry]);
-
-    if (Math.random() > .8) {
-      grassGeometry = BufferGeometryUtils.mergeGeometries([grassGeometry, tree(height, position)])
-    }
-  } else if (height > GRASS_HEIGHT) {
-    grassGeometry = BufferGeometryUtils.mergeGeometries([geo, grassGeometry]);
-
-    if (Math.random() > .8) {
-      grassGeometry = BufferGeometryUtils.mergeGeometries([grassGeometry, tree(height, position)])
-    }
-  } else if (height > SAND_HEIGHT) {
-    sandGeometry = BufferGeometryUtils.mergeGeometries([geo, sandGeometry]);
-
-    if (Math.random() > .8) {
-      stoneGeometry = BufferGeometryUtils.mergeGeometries([stoneGeometry, stone(height, position)])
-    }
-  } else if (height > DIRT2_HEIGHT) {
-    dirt2Geometry = BufferGeometryUtils.mergeGeometries([geo, dirt2Geometry]);
-  } else {
-
-  } 
-}
-
-function hexMesh(geometry, map) {
+function createMaterial(map) {
   let material = new THREE.MeshPhysicalMaterial({
     envMap: envmap,
     envMapIntensity: .135,
@@ -272,28 +249,28 @@ function hexMesh(geometry, map) {
     map
   })
 
-  let mesh = new THREE.Mesh(geometry, material);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-
-  return mesh;
+  return material;
 }
 
 function tileToPosition(tileX, tileY) {
   return new THREE.Vector2((tileX + (tileY % 2) * .5) * 1.77, tileY * 1.535)
 }
 
-function stone(height, position) {
+function spawn_stone(height, position) {
   const px = Math.random() * .4;
   const pz = Math.random() * .4;
 
   const geo = new THREE.SphereGeometry(Math.random() * .3 + .1, 7, 7);
   geo.translate(position.x + px, height, position.y + pz);
-
-  return geo
+  const mesh = new THREE.Mesh(
+    geo,
+    stoneMaterial
+  );
+  mesh.name = "Stone";
+  scene.add(mesh);
 }
 
-function tree(height, position) {
+function spawn_tree(height, position) {
   const treeHeight = Math.random() * 1 + 1.25;
 
   const geo1 = new THREE.CylinderGeometry(0, 1.5, treeHeight, 3);
@@ -303,10 +280,16 @@ function tree(height, position) {
   const geo3 = new THREE.CylinderGeometry(0, .8, treeHeight, 3);
   geo3.translate(position.x, height + treeHeight * 1.25 + 1, position.y);
 
-  return BufferGeometryUtils.mergeGeometries([geo1, geo2, geo3]);
+  const geo = BufferGeometryUtils.mergeGeometries([geo1, geo2, geo3]);
+  const mesh = new THREE.Mesh(
+    geo,
+    treeMaterial,
+  );
+  mesh.name = "Tree";
+  scene.add(mesh);
 }
 
-function clouds() {
+function spawn_clouds() {
   let geo = new THREE.SphereGeometry(0, 0, 0);
   let count = Math.floor(Math.pow(Math.random(), .45) * 4);
 
@@ -338,5 +321,32 @@ function clouds() {
       flatShading: true,
     })
   );
+  mesh.name = "Cloud";
   scene.add(mesh);
+}
+
+function getRandomTexture(height, position) {
+  if (height > STONE_HEIGHT) {
+    if (Math.random() > .8) {
+      spawn_stone(Math.round(height), position);
+    }
+    return textures.stone
+  } else if (height > DIRT_HEIGHT) {
+    if (Math.random() > .8) {
+      spawn_tree(Math.round(height), position);
+    }
+    return textures.dirt
+  } else if (height > GRASS_HEIGHT) {
+    if (Math.random() > .8) {
+      spawn_tree(Math.round(height), position);
+    }
+    return textures.grass
+  } else if (height > SAND_HEIGHT) {
+    if (Math.random() > .8) {
+      spawn_stone(Math.round(height), position);
+    }
+    return textures.sand
+  } else if (height > DIRT2_HEIGHT) {
+    return textures.dirt2
+  }
 }
