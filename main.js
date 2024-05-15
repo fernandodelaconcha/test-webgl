@@ -69,6 +69,8 @@ let envmapTexture = await new RGBELoader().setDataType(THREE.FloatType).loadAsyn
 let envmap = pmrem.fromEquirectangular(envmapTexture).texture;
 
 const MAX_HEIGHT = 10;
+const MAP_SIZE = 15;
+const SEA_LEVEL = 3;
 const STONE_HEIGHT = MAX_HEIGHT * .8;
 const DIRT_HEIGHT = MAX_HEIGHT * .7;
 const GRASS_HEIGHT = MAX_HEIGHT * .5;
@@ -101,26 +103,26 @@ const stoneMaterial = new THREE.MeshStandardMaterial({
 })
 
 const tiles = [];
-for (let i = -15; i <= 15; i++) {
-  for (let j = -15; j <=15; j++) {
+for (let i = 1 - MAP_SIZE; i < MAP_SIZE; i++) {
+  for (let j = 1 - MAP_SIZE; j < MAP_SIZE; j++) {
     const position = new tileToPosition(i, j);
 
-    if (position.length() > 16) continue;
+    if (position.length() > MAP_SIZE) continue;
     let noise = (noise2D(i * .1, j * .1) + 1) * .5;
     noise = Math.pow(noise, 1.5);
     
     const height = noise * MAX_HEIGHT;
-    if (height < 3) continue;
+    if (height < SEA_LEVEL) continue;
     const tile = new Tile(new THREE.Vector2(i, j), height);
     const texture = getRandomTexture(height, position);
-    const mesh = tile.createMesh(createMaterial(texture));
+    const mesh = createTile(tile, createMaterial(texture));
     tiles.push(tile);
     scene.add(mesh)
   }
 }
 
 let seaMesh = new THREE.Mesh(
-  new THREE.CylinderGeometry(17, 17, MAX_HEIGHT * .2, 50),
+  new THREE.CylinderGeometry(MAP_SIZE + 1, MAP_SIZE + 1, SEA_LEVEL + .1, 50),
   new THREE.MeshPhysicalMaterial({
     envMap: envmap,
     color: new THREE.Color("#55aaff").convertSRGBToLinear().multiplyScalar(3),
@@ -136,11 +138,11 @@ let seaMesh = new THREE.Mesh(
   })
 );
 seaMesh.receiveShadow = true;
-seaMesh.position.set(0, MAX_HEIGHT * .1, 0)
+seaMesh.position.set(0, SEA_LEVEL - 1, 0)
 scene.add(seaMesh);
 
 let mapContainer = new THREE.Mesh(
-  new THREE.CylinderGeometry(17.1, 17.1, MAX_HEIGHT * .25, 50, 1, true),
+  new THREE.CylinderGeometry(MAP_SIZE + 1.1, MAP_SIZE + 1.1, SEA_LEVEL + 1, 50, 1, true),
   new THREE.MeshPhysicalMaterial({
     envMap: envmap,
     map: textures.dirt,
@@ -149,11 +151,11 @@ let mapContainer = new THREE.Mesh(
   })
 );
 mapContainer.receiveShadow = true;
-mapContainer.position.set(0, MAX_HEIGHT * .125, 0)
+mapContainer.position.set(0, SEA_LEVEL - 1, 0)
 scene.add(mapContainer);
 
 let mapFloor = new THREE.Mesh(
-  new THREE.CylinderGeometry(18.5, 18.5, MAX_HEIGHT * .1, 50),
+  new THREE.CylinderGeometry(MAP_SIZE + 2.5, MAP_SIZE + 2.5, MAX_HEIGHT * .1, 50),
   new THREE.MeshPhysicalMaterial({
     envMap: envmap,
     map: textures.dirt2,
@@ -188,9 +190,11 @@ function onPointerMove(event) {
 
   raycaster.setFromCamera( pointer, camera );
 	const intersects = raycaster.intersectObjects( scene.children );
-  console.log(intersects[0]?.object.name);
+  
   if (intersects.length > 0 && intersects[0].object && intersects[0].object.name == "Tile") {
     intersects[0].object.material.color.set( 0xff0000 );
+    if (!intersects[0].object.userData instanceof Tile) return;
+    console.log(intersects[0].object.userData.hasObstacle)
   }
 }
 
@@ -240,6 +244,20 @@ function gameLoop() {
 window.addEventListener('pointermove', onPointerMove );
 window.addEventListener('keypress', onKeyPress);
 gameLoop();
+
+function createTile(tile, material) {
+    let position = tileToPosition(tile.index.x, tile.index.y)
+    let geo = new THREE.CylinderGeometry(1, 1, tile.height, 6, 1, false);
+    geo.translate(position.x, tile.height * 0.5, position.y);
+        
+    let mesh = new THREE.Mesh(geo, material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.name = 'Tile';
+    mesh.userData = tile;
+
+    return mesh;
+}
 
 function createMaterial(map) {
   let material = new THREE.MeshPhysicalMaterial({
