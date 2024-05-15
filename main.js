@@ -2,10 +2,13 @@ import './style.css';
 import * as THREE from 'three';
 import anime from 'animejs';
 import { BufferGeometryUtils, RGBELoader, SimplexNoise } from 'three/examples/jsm/Addons.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-
+import { OrbitControls } from 'three/examples/jsm/Addons.js';
+import Tile from './Tile';
 let sunBackground = document.querySelector(".sun-background");
 let moonBackground = document.querySelector(".moon-background");
+
+// let sunBackground : HTMLElement = document.querySelector(".sun-background") as HTMLElement;
+// let moonBackground : HTMLElement = document.querySelector(".moon-background") as HTMLElement;
 
 const scene = new THREE.Scene();
 
@@ -85,6 +88,7 @@ let textures = {
   stone: await new THREE.TextureLoader().loadAsync("assets/stone.png"),
 }
 
+const tiles = [];
 for (let i = -15; i <= 15; i++) {
   for (let j = -15; j <=15; j++) {
     let position = new tileToPosition(i, j);
@@ -93,6 +97,11 @@ for (let i = -15; i <= 15; i++) {
     let noise = (simplex.noise(i * .1, j * .1) + 1) * .5;
     noise = Math.pow(noise, 1.5);
     makeHex(noise * MAX_HEIGHT, position);
+    // const height = Math.round(noise * MAX_HEIGHT);
+    // const tile = new Tile(new THREE.Vector2(i, j), height);
+    // const mesh = tile.createMesh();
+    // tiles.push(tile);
+    // scene.add(mesh)
   }
 }
 
