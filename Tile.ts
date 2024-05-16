@@ -1,4 +1,4 @@
-import { Texture, Vector2, CylinderGeometry, Mesh, MeshNormalMaterial } from "three";
+import { Vector2, MeshNormalMaterial } from "three";
 
 export default class Tile {
     index: Vector2;
