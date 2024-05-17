@@ -6,6 +6,7 @@ import { OrbitControls } from 'three/examples/jsm/Addons.js';
 import Tile from './Tile';
 import { PMREMGenerator } from 'three/src/extras/PMREMGenerator.js';
 import MapGenerator from './MapGenerator';
+import { TextureType } from "./Enums";
 
 let sunBackground = document.querySelector(".sun-background");
 let moonBackground = document.querySelector(".moon-background");
@@ -87,16 +88,18 @@ function onPointerMove(event) {
   pointer.x = ( (event.clientX + canvas.offsetLeft) / canvas.width ) * 2 - 1;
   pointer.y = - ( (event.clientY - canvas.offsetTop) / canvas.height ) * 2 + 1;
 
-  // pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-  // pointer.y = (event.clientY / window.innerHeight) * 2 + 1;
-
   raycaster.setFromCamera( pointer, camera );
 	const intersects = raycaster.intersectObjects( scene.children );
   
   if (intersects.length > 0 && intersects[0].object && intersects[0].object.name == "Tile") {
-    intersects[0].object.material.color.set( 0xff0000 );
     if (!intersects[0].object.userData instanceof Tile) return;
-    console.log(intersects[0].object.userData.hasObstacle)
+    let index = intersects[0].object.userData.index;
+    if (!mapGenerator.currentMap.getTileByIndex(index).hasObstacle) {
+      intersects[0].object.material.color.set( 0xff0000 );
+    }
+    else {
+      console.log(TextureType[mapGenerator.currentMap.getTileByIndex(index).texture])
+    }
   }
 }
 

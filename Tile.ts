@@ -1,9 +1,10 @@
-import { Vector2, MeshNormalMaterial } from "three";
+import { Vector2 } from "three";
+import { TextureType } from "./Enums";
 
 export default class Tile {
     index: Vector2;
     height: number;
-    material: MeshNormalMaterial;
+    texture: TextureType;
     hasObstacle: boolean;
     constructor (index: Vector2, height: number){
         this.index = index;

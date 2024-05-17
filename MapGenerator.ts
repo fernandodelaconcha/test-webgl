@@ -3,8 +3,8 @@ import Tile from './Tile';
 import Map from './Map';
 import { Vector2, CylinderGeometry, Color, SphereGeometry, Mesh, MeshPhysicalMaterial, Scene, DoubleSide, TextureLoader, MeshStandardMaterial, MeshBasicMaterial, Texture } from 'three';
 import { BufferGeometryUtils } from 'three/examples/jsm/Addons.js';
-import { PMREMGenerator } from 'three/src/extras/PMREMGenerator.js';
 import Alea from 'alea';
+import { TextureType } from './Enums';
 
 const STONE_CONSTANT = .8;
 const DIRT_CONSTANT = .7;
@@ -23,16 +23,17 @@ export function tileToPosition(tileX: number, tileY: number) {
 }
 
 export default class MapGenerator {
-  envmap: PMREMGenerator;
+  envmap: Texture;
   scene: Scene;
-  constructor(envmap: PMREMGenerator, scene: Scene) {
+  currentMap: Map;
+  constructor(envmap: Texture, scene: Scene) {
     this.envmap = envmap;
     this.scene = scene;
   }
-  createMap(size: number = 15, seaLevel: number = 3, maxHeight: number = 10): Map {
+  createMap(size: number = 15, seaLevel: number = 3, maxHeight: number = 10): void {
     const seed = window.crypto.randomUUID()
     const noise2D = createNoise2D(Alea(seed));
-    const tiles: Array<Tile> = [];
+    this.currentMap = new Map(size, seaLevel, maxHeight);
     for (let i = 1 - size; i < size; i++) {
       for (let j = 1 - size; j < size; j++) {
         const position = tileToPosition(i, j);
@@ -43,21 +44,21 @@ export default class MapGenerator {
 
         const height = noise * maxHeight;
         if (height < seaLevel) continue;
+
         const tile = new Tile(new Vector2(i, j), height);
-        const texture = this.getRandomTexture(height, position, maxHeight);
-        const mesh = this.createTile(tile, this.createMaterial(texture));
-        tiles.push(tile);
+        const textureType = this.getRandomTexture(height, maxHeight);
+        tile.texture = textureType;
+        this.createObstacle(textureType, tile, height);
+        this.currentMap.tiles.push(tile);
+
+        const mesh = this.createTile(tile, this.createMaterial(textureType));
         this.scene.add(mesh);
       }
     }
-    let map = new Map(size, seaLevel, maxHeight);
-    map.tiles = tiles;
     this.createSea(size, seaLevel);
     this.createContainer(size, seaLevel);
     this.createFloor(size, maxHeight);
-    this.createClouds(Math.floor(Math.pow(Math.random(), .45) * 4));
-        
-    return map;
+    this.createClouds(Math.floor(Math.pow(Math.random(), .45) * size / 3), size);
   }
   createTile(tile: Tile, material: MeshPhysicalMaterial): Mesh {
     let position = tileToPosition(tile.index.x, tile.index.y);
@@ -73,7 +74,8 @@ export default class MapGenerator {
     return mesh;
   }
 
-  createMaterial(map: any): MeshPhysicalMaterial {
+  createMaterial(textureType: TextureType): MeshPhysicalMaterial {
+    let map = this.getTextureFromTextureType(textureType);
     let material = new MeshPhysicalMaterial({
       envMap: this.envmap,
       envMapIntensity: 0.135,
@@ -85,6 +87,7 @@ export default class MapGenerator {
   }
 
   createSea(size: number, seaLevel: number): void {
+    let texture = this.getTextureFromTextureType(TextureType.WATER_TEXTURE);
     let seaMesh: Mesh = new Mesh(
       new CylinderGeometry(size + 1, size + 1, seaLevel + 0.1, 50),
       new MeshPhysicalMaterial({
@@ -97,8 +100,8 @@ export default class MapGenerator {
         envMapIntensity: 0.2,
         roughness: 1,
         metalness: 0.025,
-        roughnessMap: WATER_TEXTURE,
-        metalnessMap: WATER_TEXTURE,
+        roughnessMap: texture,
+        metalnessMap: texture,
       }) as unknown as MeshBasicMaterial
     );
     seaMesh.receiveShadow = true;
@@ -110,7 +113,7 @@ export default class MapGenerator {
       new CylinderGeometry(size + 1.1, size + 1.1, seaLevel + 1, 50, 1, true),
       new MeshPhysicalMaterial({
         envMap: this.envmap,
-        map: DIRT_TEXTURE,
+        map: this.getTextureFromTextureType(TextureType.DIRT_TEXTURE),
         envMapIntensity: 0.2,
         side: DoubleSide,
       }) as unknown as MeshBasicMaterial
@@ -124,7 +127,7 @@ export default class MapGenerator {
       new CylinderGeometry(size + 2.5, size + 2.5, maxHeight * 0.1, 50),
       new MeshPhysicalMaterial({
         envMap: this.envmap,
-        map: DIRT2_TEXTURE,
+        map: this.getTextureFromTextureType(TextureType.DIRT2_TEXTURE),
         envMapIntensity: 0.1,
         side: DoubleSide,
       }) as unknown as MeshBasicMaterial
@@ -150,7 +153,7 @@ export default class MapGenerator {
         envMap: this.envmap,
         envMapIntensity: 0.75,
         flatShading: true,
-        map: GRASS_TEXTURE
+        map: this.getTextureFromTextureType(TextureType.GRASS_TEXTURE)
       }) as unknown as MeshBasicMaterial
     );
     mesh.name = "Tree";
@@ -161,7 +164,7 @@ export default class MapGenerator {
     const px = Math.random() * 0.4;
     const pz = Math.random() * 0.4;
 
-    const geo = new SphereGeometry(Math.random() * 0.3 + 0.1, 7, 7);
+    const geo = new SphereGeometry(Math.random() * 0.3 + 0.4, 7, 7);
     geo.translate(position.x + px, height, position.y + pz);
     const mesh = new Mesh(
       geo,
@@ -169,14 +172,14 @@ export default class MapGenerator {
         envMap: this.envmap,
         envMapIntensity: 0.75,
         flatShading: true,
-        map: STONE_TEXTURE
+        map: this.getTextureFromTextureType(TextureType.STONE_TEXTURE)
       }) as unknown as MeshBasicMaterial
     );
     mesh.name = "Stone";
     this.scene.add(mesh);
   }
 
-  createClouds(count: number): void {
+  createClouds(count: number, size: number): void {
     let geo = new SphereGeometry(0, 0, 0);
   
     for (let i = 0; i < count; i++) {
@@ -190,9 +193,9 @@ export default class MapGenerator {
   
       const cloudGeo = BufferGeometryUtils.mergeGeometries([puff1, puff2, puff3]);
       cloudGeo.translate(
-        Math.random() * 20 - 10,
+        Math.random() * size - 10,
         Math.random() * 4 + 15,
-        Math.random() * 20 - 10,
+        Math.random() * size - 10,
       )
       cloudGeo.rotateY(Math.random() * Math.PI * 2);
   
@@ -211,28 +214,49 @@ export default class MapGenerator {
     this.scene.add(mesh);
   }
 
-  getRandomTexture(height: number, position: Vector2, maxHeight: number): Texture {
+  getRandomTexture(height: number, maxHeight: number): TextureType {
     if (height > STONE_CONSTANT * maxHeight) {
-      if (Math.random() > 0.8) {
-        this.createStone(Math.round(height), position);
-      }
-      return STONE_TEXTURE;
+      return TextureType.STONE_TEXTURE;
     } else if (height > DIRT_CONSTANT * maxHeight) {
-      if (Math.random() > 0.8) {
-        this.createTree(Math.round(height), position);
-      }
-      return DIRT_TEXTURE;
+      return TextureType.DIRT_TEXTURE;
     } else if (height > GRASS_CONSTANT * maxHeight) {
-      if (Math.random() > 0.8) {
-        this.createTree(Math.round(height), position);
-      }
-      return GRASS_TEXTURE;
+      return TextureType.GRASS_TEXTURE;
     } else if (height > SAND_CONSTANT * maxHeight) {
-      if (Math.random() > 0.8) {
-        this.createStone(Math.round(height), position);
-      }
-      return SAND_TEXTURE;
+      return TextureType.SAND_TEXTURE;
     } else 
-      return DIRT2_TEXTURE;
+      return TextureType.DIRT2_TEXTURE;
+  }
+  
+  getTextureFromTextureType(textureType: TextureType): Texture {
+    switch (textureType) {
+      case TextureType.STONE_TEXTURE:
+        return STONE_TEXTURE;
+      case TextureType.DIRT_TEXTURE:
+        return DIRT_TEXTURE;
+      case TextureType.GRASS_TEXTURE:
+        return GRASS_TEXTURE;
+      case TextureType.SAND_TEXTURE:
+        return SAND_TEXTURE;
+      case TextureType.DIRT2_TEXTURE:
+        return DIRT2_TEXTURE;
+      case TextureType.WATER_TEXTURE:
+        return WATER_TEXTURE;
+    }
+  }
+
+  createObstacle(textureType: TextureType, tile: Tile, height: number): void {
+    let position = tileToPosition(tile.index.x, tile.index.y);
+    if (Math.random() > 0.8) {
+      switch(textureType){
+        case (TextureType.STONE_TEXTURE || TextureType.SAND_TEXTURE):
+          this.createStone(Math.round(height), position);
+          tile.hasObstacle = true;
+          break;
+        case (TextureType.DIRT_TEXTURE || TextureType.GRASS_TEXTURE):
+          this.createTree(Math.round(height), position);
+          tile.hasObstacle = true;
+          break;
+      }
+      }
   }
 }
