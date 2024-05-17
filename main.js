@@ -27,6 +27,8 @@ const renderer = new THREE.WebGLRenderer({
 });
 
 let currentMap;
+let hoveredTile;
+let clickedTile;
 
 renderer.setPixelRatio(devicePixelRatio);
 renderer.setSize(innerWidth, innerHeight);
@@ -79,12 +81,8 @@ let daytime = true;
 let animating = false;
 
 function onPointerMove(event) {
+  hoveredTile = null;
   event.preventDefault();
-  scene.children.forEach(object => {
-    if (object.name == "Tile")
-      object.material.color.set("white");
-  });
-
   pointer.x = ( (event.clientX + canvas.offsetLeft) / canvas.width ) * 2 - 1;
   pointer.y = - ( (event.clientY - canvas.offsetTop) / canvas.height ) * 2 + 1;
 
@@ -94,12 +92,14 @@ function onPointerMove(event) {
   if (intersects.length > 0 && intersects[0].object && intersects[0].object.name == "Tile") {
     if (!intersects[0].object.userData instanceof Tile) return;
     let index = intersects[0].object.userData.index;
-    if (!mapGenerator.currentMap.getTileByIndex(index).hasObstacle) {
-      intersects[0].object.material.color.set( 0xff0000 );
-    }
-    else {
-      console.log(TextureType[mapGenerator.currentMap.getTileByIndex(index).texture])
-    }
+    hoveredTile = mapGenerator.currentMap.getTileByIndex(index);
+  }
+}
+
+function onMouseDown(event) {
+  clickedTile = null;
+  if (hoveredTile) {
+    clickedTile = hoveredTile;
   }
 }
 
@@ -158,8 +158,21 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
   controls.update();
   renderer.render(scene, camera);
+  
+  scene.children.forEach(object => {
+    if (object.userData == clickedTile) {
+      object.material.color.set( 0xff0000 );
+    }
+    else if (object.userData == hoveredTile) {
+      object.material.color.set( 0xffff00 );
+    }
+    else if (object.name == "Tile")
+      object.material.color.set("white");
+  });
+
 }
 
 window.addEventListener('pointermove', onPointerMove );
 window.addEventListener('keypress', onKeyPress);
+window.addEventListener('mousedown', onMouseDown);
 gameLoop();

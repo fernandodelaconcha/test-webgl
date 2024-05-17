@@ -21,7 +21,6 @@ const WATER_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/water
 export function tileToPosition(tileX: number, tileY: number) {
   return new Vector2((tileX + (tileY % 2) * .5) * 1.77, tileY * 1.535)
 }
-
 export default class MapGenerator {
   envmap: Texture;
   scene: Scene;
@@ -30,8 +29,8 @@ export default class MapGenerator {
     this.envmap = envmap;
     this.scene = scene;
   }
-  createMap(size: number = 15, seaLevel: number = 3, maxHeight: number = 10): void {
-    const seed = window.crypto.randomUUID()
+  createMap(size: number = 15, seaLevel: number = 3, maxHeight: number = 10, minHeight: number = 0): void {
+    const seed = window.crypto.randomUUID();
     const noise2D = createNoise2D(Alea(seed));
     this.currentMap = new Map(size, seaLevel, maxHeight);
     for (let i = 1 - size; i < size; i++) {
@@ -42,7 +41,7 @@ export default class MapGenerator {
         let noise = (noise2D(i * 0.1, j * 0.1) + 1) * 0.5;
         noise = Math.pow(noise, 1.5);
 
-        const height = noise * maxHeight;
+        const height = Math.round(noise * maxHeight + minHeight);
         if (height < seaLevel) continue;
 
         const tile = new Tile(new Vector2(i, j), height);
@@ -105,7 +104,7 @@ export default class MapGenerator {
       }) as unknown as MeshBasicMaterial
     );
     seaMesh.receiveShadow = true;
-    seaMesh['position'].set(0, seaLevel - 1, 0)
+    seaMesh['position'].set(0, seaLevel - 1, 0);
     this.scene.add(seaMesh);
   }
   createContainer(size: number, seaLevel: number): void {
@@ -119,7 +118,7 @@ export default class MapGenerator {
       }) as unknown as MeshBasicMaterial
     );
     mapContainer.receiveShadow = true;
-    mapContainer['position'].set(0, seaLevel - 1, 0)
+    mapContainer['position'].set(0, seaLevel - 1, 0);
     this.scene.add(mapContainer);
   }
   createFloor(size: number, maxHeight: number): void {
@@ -133,7 +132,7 @@ export default class MapGenerator {
       }) as unknown as MeshBasicMaterial
     );
     mapFloor.receiveShadow = true;
-    mapFloor['position'].set(0, - maxHeight * .05, 0)
+    mapFloor['position'].set(0, - maxHeight * .05, 0);
     this.scene.add(mapFloor);
   }
   createTree(height: number, position: Vector2): void {
@@ -160,28 +159,31 @@ export default class MapGenerator {
     this.scene.add(mesh);
   }
 
-  createStone(height: number, position: Vector2): void {
-    const px = Math.random() * 0.4;
-    const pz = Math.random() * 0.4;
-
-    const geo = new SphereGeometry(Math.random() * 0.3 + 0.4, 7, 7);
-    geo.translate(position.x + px, height, position.y + pz);
+  createStone(height: number, position: Vector2, count: number): void {
+    let geos: Array<SphereGeometry> = [];
+    for (let i = 0; i < count; i++) {
+      const geo1 = new SphereGeometry(Math.random() * .4 + .3, 7, 7, 0,  Math.PI*2, 0, Math.PI / 2);
+      const displacementX = Math.random() * .5 * (Math.round(Math.random()) ? 1 : -1);
+      const displacementY = Math.random() * .5 * (Math.round(Math.random()) ? 1 : -1);
+      geo1.translate(position.x + displacementX, height, position.y + displacementY);
+      geos.push(geo1);
+    }
+    const geo = BufferGeometryUtils.mergeGeometries(geos) as SphereGeometry;
     const mesh = new Mesh(
       geo,
       new MeshPhysicalMaterial({
         envMap: this.envmap,
         envMapIntensity: 0.75,
         flatShading: true,
-        map: this.getTextureFromTextureType(TextureType.STONE_TEXTURE)
+        map: this.getTextureFromTextureType(TextureType.STONE_TEXTURE),
       }) as unknown as MeshBasicMaterial
     );
     mesh.name = "Stone";
     this.scene.add(mesh);
   }
 
-  createClouds(count: number, size: number): void {
+  createClouds(count: number, mapSize: number): void {
     let geo = new SphereGeometry(0, 0, 0);
-  
     for (let i = 0; i < count; i++) {
       const puff1 = new SphereGeometry(1.2, 7, 7);
       const puff2 = new SphereGeometry(1.5, 7, 7);
@@ -193,13 +195,12 @@ export default class MapGenerator {
   
       const cloudGeo = BufferGeometryUtils.mergeGeometries([puff1, puff2, puff3]);
       cloudGeo.translate(
-        Math.random() * size - 10,
+        Math.random() * mapSize - 10,
         Math.random() * 4 + 15,
-        Math.random() * size - 10,
-      )
+        Math.random() * mapSize - 10,
+      );
       cloudGeo.rotateY(Math.random() * Math.PI * 2);
-  
-      geo = BufferGeometryUtils.mergeGeometries([geo, cloudGeo]) as SphereGeometry
+      geo = BufferGeometryUtils.mergeGeometries([geo, cloudGeo]) as SphereGeometry;
     }
   
     const mesh = new Mesh(
@@ -248,15 +249,17 @@ export default class MapGenerator {
     let position = tileToPosition(tile.index.x, tile.index.y);
     if (Math.random() > 0.8) {
       switch(textureType){
-        case (TextureType.STONE_TEXTURE || TextureType.SAND_TEXTURE):
-          this.createStone(Math.round(height), position);
+        case (TextureType.SAND_TEXTURE):
+        case (TextureType.STONE_TEXTURE):
+          this.createStone(Math.round(height), position, Math.floor(Math.pow(Math.random(), .45) * 3 + 1));
           tile.hasObstacle = true;
           break;
-        case (TextureType.DIRT_TEXTURE || TextureType.GRASS_TEXTURE):
+        case (TextureType.DIRT_TEXTURE):
+        case (TextureType.GRASS_TEXTURE):
           this.createTree(Math.round(height), position);
           tile.hasObstacle = true;
           break;
       }
-      }
+    }
   }
 }
