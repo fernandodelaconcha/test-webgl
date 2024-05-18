@@ -6,7 +6,8 @@ import { OrbitControls } from 'three/examples/jsm/Addons.js';
 import Tile from './Tile';
 import { PMREMGenerator } from 'three/src/extras/PMREMGenerator.js';
 import MapGenerator from './MapGenerator';
-import { TextureType } from "./Enums";
+import { Actions, TileStatus } from './Enums';
+import { getTileFromRaycast } from './Utils'
 
 let sunBackground = document.querySelector(".sun-background");
 let moonBackground = document.querySelector(".moon-background");
@@ -27,8 +28,8 @@ const renderer = new THREE.WebGLRenderer({
 });
 
 let currentMap;
-let hoveredTile;
-let clickedTile;
+let currentAction = Actions.SELECT_TILE;
+let selectedTile;
 
 renderer.setPixelRatio(devicePixelRatio);
 renderer.setSize(innerWidth, innerHeight);
@@ -66,6 +67,10 @@ scene.add(sunLight);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.dampingFactor = 0.05;
 controls.enableDamping = true;
+controls.listenToKeyEvents(window)
+controls.mouseButtons= {
+	MIDDLE: THREE.MOUSE.ROTATE
+}
 
 renderer.render(scene, camera);
 let pmrem = new PMREMGenerator(renderer);
@@ -75,31 +80,26 @@ const mapGenerator = new MapGenerator(envmap, scene);
 currentMap = mapGenerator.createMap();
 
 const clock = new THREE.Clock();
-const raycaster = new THREE.Raycaster();
-const pointer = new THREE.Vector2(0, 0);
 let daytime = true;
 let animating = false;
 
 function onPointerMove(event) {
-  hoveredTile = null;
-  event.preventDefault();
-  pointer.x = ( (event.clientX + canvas.offsetLeft) / canvas.width ) * 2 - 1;
-  pointer.y = - ( (event.clientY - canvas.offsetTop) / canvas.height ) * 2 + 1;
-
-  raycaster.setFromCamera( pointer, camera );
-	const intersects = raycaster.intersectObjects( scene.children );
-  
-  if (intersects.length > 0 && intersects[0].object && intersects[0].object.name == "Tile") {
-    if (!intersects[0].object.userData instanceof Tile) return;
-    let index = intersects[0].object.userData.index;
-    hoveredTile = mapGenerator.currentMap.getTileByIndex(index);
-  }
+  scene.children.forEach((element) => {
+    if (element.userData instanceof Tile && element.userData.status == TileStatus.HOVERED){
+      element.userData.status = TileStatus.NORMAL;
+    }
+  })
+  getTileFromRaycast(event, canvas, camera, scene)?.setTileStatus(TileStatus.HOVERED);
 }
 
-function onMouseDown(event) {
-  clickedTile = null;
-  if (hoveredTile) {
-    clickedTile = hoveredTile;
+function onMouseDown(event) {  
+  if (event.which == 1 && currentAction == Actions.SELECT_TILE) {
+    selectedTile?.resetTileStatus();
+    currentAction = Actions.MOVE_UNIT;
+    selectedTile = getTileFromRaycast(event, canvas, camera, scene);
+    selectedTile?.setTileStatus(TileStatus.SELECTED);
+  } else {
+    currentAction = Actions.SELECT_TILE;
   }
 }
 
@@ -153,26 +153,34 @@ function onKeyPress(event) {
   }
 }
 
-function gameLoop() {  
+function gameLoop() {
   let delta = clock.getDelta();
   requestAnimationFrame(gameLoop);
   controls.update();
   renderer.render(scene, camera);
   
   scene.children.forEach(object => {
-    if (object.userData == clickedTile) {
-      object.material.color.set( 0xff0000 );
+    if (object.userData instanceof Tile) {
+      switch (object.userData.status) {
+        case TileStatus.REACHABLE:
+          object.material.color.set( 0x0000ff );
+          break;
+        case TileStatus.SELECTED:
+          object.material.color.set( 0xff0000 );
+          break;
+        case TileStatus.HOVERED:
+          object.material.color.set( 0xffff00 );
+          break;
+        default:
+          object.material.color.set("white")
+          break;
+      }
     }
-    else if (object.userData == hoveredTile) {
-      object.material.color.set( 0xffff00 );
-    }
-    else if (object.name == "Tile")
-      object.material.color.set("white");
   });
-
 }
 
 window.addEventListener('pointermove', onPointerMove );
 window.addEventListener('keypress', onKeyPress);
 window.addEventListener('mousedown', onMouseDown);
+
 gameLoop();
