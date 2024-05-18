@@ -10,8 +10,9 @@ export enum TextureType {
 export enum TileStatus {
     NORMAL,
     HOVERED,
-    SELECTED,
     REACHABLE,
+    PATH,
+    SELECTED,
     TARGET,
     FOV
 }

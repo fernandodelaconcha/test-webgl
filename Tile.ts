@@ -11,14 +11,11 @@ export default class Tile {
         this.index = index;
         this.height = Math.round(height);
         this.hasObstacle = false;
-        this.resetTileStatus()
+        this.status = TileStatus.NORMAL;
     };
     setTileStatus(status: TileStatus) {
         if (status > this.status) {
             this.status = status;
         }
-    }
-    resetTileStatus() {
-        this.status = TileStatus.NORMAL;
     }
 }

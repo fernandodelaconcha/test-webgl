@@ -24,16 +24,15 @@ export function tileToPosition(tileX: number, tileY: number) {
 export default class MapGenerator {
   envmap: Texture;
   scene: Scene;
-  currentMap: Map;
   constructor(envmap: Texture, scene: Scene) {
     this.envmap = envmap;
     this.scene = scene;
   }
-  createMap(size: number = 15, seaLevel: number = 3, maxHeight: number = 10, minHeight: number = 0): void {
+  createMap(size: number = 15, seaLevel: number = 3, maxHeight: number = 10, minHeight: number = 0): Map {
     const seed = window.crypto.randomUUID();
     const noise2D = createNoise2D(Alea(seed));
-    this.currentMap = new Map(size, seaLevel, maxHeight);
-    for (let i = 1 - size; i < size; i++) {
+    const map = new Map(size, seaLevel, maxHeight);
+    for (let i = 0 - size; i < size; i++) {
       for (let j = 1 - size; j < size; j++) {
         const position = tileToPosition(i, j);
 
@@ -48,7 +47,7 @@ export default class MapGenerator {
         const textureType = this.getRandomTexture(height, maxHeight);
         tile.texture = textureType;
         this.createObstacle(textureType, tile, height);
-        this.currentMap.tiles.push(tile);
+        map.tiles.push(tile);
 
         const mesh = this.createTile(tile, this.createMaterial(textureType));
         this.scene.add(mesh);
@@ -58,6 +57,8 @@ export default class MapGenerator {
     this.createContainer(size, seaLevel);
     this.createFloor(size, maxHeight);
     this.createClouds(Math.floor(Math.pow(Math.random(), .45) * size / 3), size);
+    
+    return map;
   }
   createTile(tile: Tile, material: MeshPhysicalMaterial): Mesh {
     let position = tileToPosition(tile.index.x, tile.index.y);

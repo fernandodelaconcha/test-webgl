@@ -85,19 +85,39 @@ let animating = false;
 
 function onPointerMove(event) {
   scene.children.forEach((element) => {
-    if (element.userData instanceof Tile && element.userData.status == TileStatus.HOVERED){
-      element.userData.status = TileStatus.NORMAL;
+    if (element.userData instanceof Tile){
+      if (element.userData.status == TileStatus.HOVERED) {
+        element.userData.status = TileStatus.NORMAL;
+      } else if (element.userData.status == TileStatus.TARGET){
+        element.userData.status = TileStatus.REACHABLE;
+      }
     }
   })
-  getTileFromRaycast(event, canvas, camera, scene)?.setTileStatus(TileStatus.HOVERED);
+  let hovered = getTileFromRaycast(event, canvas, camera, scene);
+  if (hovered && hovered.status == TileStatus.REACHABLE) {
+    hovered.setTileStatus(TileStatus.TARGET);
+  } else {
+    hovered?.setTileStatus(TileStatus.HOVERED);
+  }
 }
 
 function onMouseDown(event) {  
   if (event.which == 1 && currentAction == Actions.SELECT_TILE) {
-    selectedTile?.resetTileStatus();
+    if (selectedTile) {
+      selectedTile.status = TileStatus.NORMAL;
+      currentMap.getTileNeighbors(selectedTile, 99).forEach((element) => {
+        element.status = TileStatus.NORMAL;
+      })
+    }
+    
     currentAction = Actions.MOVE_UNIT;
     selectedTile = getTileFromRaycast(event, canvas, camera, scene);
-    selectedTile?.setTileStatus(TileStatus.SELECTED);
+    if (!selectedTile) return;
+    selectedTile.setTileStatus(TileStatus.SELECTED);
+
+    currentMap.getTileNeighbors(selectedTile, 2).forEach(element => {
+      element.setTileStatus(TileStatus.REACHABLE)
+    })
   } else {
     currentAction = Actions.SELECT_TILE;
   }
@@ -162,8 +182,14 @@ function gameLoop() {
   scene.children.forEach(object => {
     if (object.userData instanceof Tile) {
       switch (object.userData.status) {
-        case TileStatus.REACHABLE:
+        case TileStatus.FOV:
+          object.material.color.set( 0x000000 );
+          break;
+        case TileStatus.TARGET:
           object.material.color.set( 0x0000ff );
+          break;  
+        case TileStatus.REACHABLE:
+          object.material.color.set( 0x03adfc );
           break;
         case TileStatus.SELECTED:
           object.material.color.set( 0xff0000 );
