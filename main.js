@@ -87,40 +87,46 @@ function onPointerMove(event) {
   scene.children.forEach((element) => {
     if (element.userData instanceof Tile){
       if (element.userData.status == TileStatus.HOVERED) {
-        element.userData.status = TileStatus.NORMAL;
+        element.userData.setTileStatus(TileStatus.NORMAL, true);
       } else if (element.userData.status == TileStatus.TARGET){
-        element.userData.status = TileStatus.REACHABLE;
+        element.userData.setTileStatus(TileStatus.REACHABLE, true);
       }
     }
   })
   let hovered = getTileFromRaycast(event, canvas, camera, scene);
-  if (hovered && hovered.status == TileStatus.REACHABLE) {
+  if (hovered && (hovered.status == TileStatus.REACHABLE || hovered.status == TileStatus.PATH)) {
+    currentMap.applyStatusToTiles(TileStatus.PATH, TileStatus.REACHABLE);
     hovered.setTileStatus(TileStatus.TARGET);
+    const path = currentMap.findPath(6, selectedTile, hovered);
+    path.forEach(element => {
+      element.setTileStatus(TileStatus.PATH)
+    });
+    console.log(path.map((e) => e.index))
   } else {
     hovered?.setTileStatus(TileStatus.HOVERED);
   }
 }
 
-function onMouseDown(event) {  
-  if (event.which == 1 && currentAction == Actions.SELECT_TILE) {
-    if (selectedTile) {
-      selectedTile.status = TileStatus.NORMAL;
-      currentMap.getTileNeighbors(selectedTile, 99).forEach((element) => {
-        element.status = TileStatus.NORMAL;
-      })
-    }
-    
-    currentAction = Actions.MOVE_UNIT;
-    selectedTile = getTileFromRaycast(event, canvas, camera, scene);
-    if (!selectedTile) return;
-    selectedTile.setTileStatus(TileStatus.SELECTED);
-
-    currentMap.getTileNeighbors(selectedTile, 2).forEach(element => {
-      element.setTileStatus(TileStatus.REACHABLE)
-    })
-  } else {
-    currentAction = Actions.SELECT_TILE;
+function onMouseDown(event) {
+  if (event.which == 1) {
+  const originTile = selectedTile;
+  selectedTile = getTileFromRaycast(event, canvas, camera, scene);
+  if (originTile) {
+    originTile.setTileStatus(TileStatus.NORMAL, true);
+    currentMap.applyStatusToTiles(TileStatus.REACHABLE, TileStatus.NORMAL);
+  };
+  if (selectedTile) onTileClicked(originTile, selectedTile)
   }
+}
+
+function onTileClicked(origin, target) {
+  origin?.setTileStatus(TileStatus.NORMAL)
+  if (target.status == TileStatus.TARGET) {
+    currentMap.clearStatusFromAllTiles();
+    return;
+  }
+  target.setTileStatus(TileStatus.SELECTED);
+  currentMap.getReachables(target, 6, 2)
 }
 
 function onKeyPress(event) {
@@ -188,6 +194,9 @@ function gameLoop() {
         case TileStatus.TARGET:
           object.material.color.set( 0x0000ff );
           break;  
+        case TileStatus.PATH:
+          object.material.color.set( 0xC5E223 );
+          break;
         case TileStatus.REACHABLE:
           object.material.color.set( 0x03adfc );
           break;

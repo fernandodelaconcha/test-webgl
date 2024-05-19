@@ -73,7 +73,6 @@ export default class MapGenerator {
 
     return mesh;
   }
-
   createMaterial(textureType: TextureType): MeshPhysicalMaterial {
     let map = this.getTextureFromTextureType(textureType);
     let material = new MeshPhysicalMaterial({
@@ -85,7 +84,6 @@ export default class MapGenerator {
 
     return material;
   }
-
   createSea(size: number, seaLevel: number): void {
     let texture = this.getTextureFromTextureType(TextureType.WATER_TEXTURE);
     let seaMesh: Mesh = new Mesh(
@@ -159,7 +157,6 @@ export default class MapGenerator {
     mesh.name = "Tree";
     this.scene.add(mesh);
   }
-
   createStone(height: number, position: Vector2, count: number): void {
     let geos: Array<SphereGeometry> = [];
     for (let i = 0; i < count; i++) {
@@ -182,7 +179,6 @@ export default class MapGenerator {
     mesh.name = "Stone";
     this.scene.add(mesh);
   }
-
   createClouds(count: number, mapSize: number): void {
     let geo = new SphereGeometry(0, 0, 0);
     for (let i = 0; i < count; i++) {
@@ -215,7 +211,6 @@ export default class MapGenerator {
     mesh.name = "Cloud";
     this.scene.add(mesh);
   }
-
   getRandomTexture(height: number, maxHeight: number): TextureType {
     if (height > STONE_CONSTANT * maxHeight) {
       return TextureType.STONE_TEXTURE;
@@ -228,7 +223,6 @@ export default class MapGenerator {
     } else 
       return TextureType.DIRT2_TEXTURE;
   }
-  
   getTextureFromTextureType(textureType: TextureType): Texture {
     switch (textureType) {
       case TextureType.STONE_TEXTURE:
@@ -245,7 +239,6 @@ export default class MapGenerator {
         return WATER_TEXTURE;
     }
   }
-
   createObstacle(textureType: TextureType, tile: Tile, height: number): void {
     let position = tileToPosition(tile.index.x, tile.index.y);
     if (Math.random() > 0.8) {
