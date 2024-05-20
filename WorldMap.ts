@@ -78,27 +78,35 @@ export default class WorldMap {
         })
     }
     getCostBetweenTwoTiles(start: Tile, target: Tile): number {
-        let resultX = Math.floor(Math.abs(start.index.x - target.index.x));
-        let resultY = Math.floor(Math.abs(start.index.y - target.index.y));
-        const result = resultX + resultY;
+        let resultX = Math.abs(start.index.x - target.index.x);
+        let resultY = Math.abs(start.index.y - target.index.y);
+        let col = Math.floor(resultX + (resultY&1) / 2)
+        let row = resultY
+        const result = col + row;
         
         return result;
     }
     findPath(start: Tile, goal: Tile, heightDifference: number) {
-        const path = this.discoverPath(start, goal, heightDifference);
+        const path = this.discoverPath(start, goal, heightDifference)?.reverse();
         const ret: Array<Tile> = []
         
-        const filteredPath = path
-        // const filteredPath = path?.filter((value, index, self) =>
-        //     index === self.findIndex((t) => (
-        //       t.estimate === value.estimate && t.cost === value.cost
-        //     ))
-        //   )
+        const filteredPath = path?.filter((value, index, self) =>
+            index === self.findIndex((t) => (
+              t.estimate === value.estimate && t.cost === value.cost
+            ))
+          )
+
         filteredPath?.forEach((e: any) => {
-            ret.push(e.state as Tile)
-        })
-        
-        return ret;
+            if (ret.length > 0) {
+                let neighbors = this.getTileNeighbors(ret[ret.length - 1], heightDifference);
+                if (neighbors.indexOf(e.state) != -1){
+                    ret.push(e.state as Tile)
+                }
+            } else {
+                ret.push(e.state as Tile)
+            }
+        });
+        return ret.reverse();
 
     }
     discoverPath(start: Tile, goal: Tile, heightDifference: number) {
