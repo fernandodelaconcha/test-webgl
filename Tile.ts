@@ -13,7 +13,7 @@ export default class Tile {
         this.hasObstacle = false;
         this.status = TileStatus.NORMAL;
     };
-    setTileStatus(status: TileStatus, force: boolean = false) {
+    setTileStatus(status: TileStatus, force?: boolean) {
         if (status > this.status || force) {
             this.status = status;
         }

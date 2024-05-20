@@ -13,6 +13,8 @@ let sunBackground = document.querySelector(".sun-background");
 let moonBackground = document.querySelector(".moon-background");
 let canvas = document.querySelector('#bg');
 
+const MOVEMENT = 6;
+
 // let sunBackground : HTMLElement = document.querySelector(".sun-background") as HTMLElement;
 // let moonBackground : HTMLElement = document.querySelector(".moon-background") as HTMLElement;
 
@@ -77,7 +79,8 @@ let pmrem = new PMREMGenerator(renderer);
 let envmapTexture = await new RGBELoader().setDataType(THREE.FloatType).loadAsync("assets/envmap.hdr");
 const envmap = pmrem.fromEquirectangular(envmapTexture).texture
 const mapGenerator = new MapGenerator(envmap, scene);
-currentMap = mapGenerator.createMap();
+currentMap = mapGenerator.createMap(20, 0, 1, 1);
+//currentMap = mapGenerator.createMap();
 
 const clock = new THREE.Clock();
 let daytime = true;
@@ -97,11 +100,13 @@ function onPointerMove(event) {
   if (hovered && (hovered.status == TileStatus.REACHABLE || hovered.status == TileStatus.PATH)) {
     currentMap.applyStatusToTiles(TileStatus.PATH, TileStatus.REACHABLE);
     hovered.setTileStatus(TileStatus.TARGET);
-    const path = currentMap.findPath(6, selectedTile, hovered);
-    path.forEach(element => {
-      element.setTileStatus(TileStatus.PATH)
-    });
-    console.log(path.map((e) => e.index))
+    // console.log(hovered.index)
+    currentMap.getCostBetweenTwoTiles(selectedTile, hovered)
+    // const path = currentMap.findPath(selectedTile, hovered, 2)
+    // path.forEach(element => {
+    //   element.setTileStatus(TileStatus.PATH)
+    // });
+    //console.log(path.map((e) => e.index))
   } else {
     hovered?.setTileStatus(TileStatus.HOVERED);
   }
@@ -126,7 +131,7 @@ function onTileClicked(origin, target) {
     return;
   }
   target.setTileStatus(TileStatus.SELECTED);
-  currentMap.getReachables(target, 6, 2)
+  currentMap.getReachables(target, MOVEMENT, 2)
 }
 
 function onKeyPress(event) {

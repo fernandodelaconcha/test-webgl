@@ -1,7 +1,7 @@
 import { createNoise2D } from 'simplex-noise';
 import Tile from './Tile';
-import Map from './Map';
-import { Vector2, CylinderGeometry, Color, SphereGeometry, Mesh, MeshPhysicalMaterial, Scene, DoubleSide, TextureLoader, MeshStandardMaterial, MeshBasicMaterial, Texture } from 'three';
+import WorldMap from './WorldMap';
+import { Vector2, CylinderGeometry, Color, SphereGeometry, Mesh, MeshPhysicalMaterial, Scene, DoubleSide, TextureLoader, MeshStandardMaterial, MeshBasicMaterial, Texture, BoxGeometry } from 'three';
 import { BufferGeometryUtils } from 'three/examples/jsm/Addons.js';
 import Alea from 'alea';
 import { TextureType } from './Enums';
@@ -18,8 +18,10 @@ const SAND_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/sand.j
 const DIRT2_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/dirt2.jpg");
 const WATER_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/water.jpg");
 
-export function tileToPosition(tileX: number, tileY: number) {
-  return new Vector2((tileX + (tileY % 2) * .5) * 1.77, tileY * 1.535)
+export function tileToPosition(tileX: number, tileY: number): Vector2 {
+  let col = tileX + (tileY&1) / 2
+  let row = tileY
+  return new Vector2(col * 1.77, row * 1.535);
 }
 export default class MapGenerator {
   envmap: Texture;
@@ -28,15 +30,13 @@ export default class MapGenerator {
     this.envmap = envmap;
     this.scene = scene;
   }
-  createMap(size: number = 15, seaLevel: number = 3, maxHeight: number = 10, minHeight: number = 0): Map {
+  createMap(size: number = 15, seaLevel: number = 3, maxHeight: number = 10, minHeight: number = 0): WorldMap {
     const seed = window.crypto.randomUUID();
     const noise2D = createNoise2D(Alea(seed));
-    const map = new Map(size, seaLevel, maxHeight);
-    for (let i = 0 - size; i < size; i++) {
-      for (let j = 1 - size; j < size; j++) {
-        const position = tileToPosition(i, j);
-
-        if (position.length() > size) continue;
+    const map = new WorldMap(size, seaLevel, maxHeight);
+    for (let i = 0 ; i < size; i++) {
+      for (let j = 0; j < size; j++) {
+        if (i > size && j > size) continue;
         let noise = (noise2D(i * 0.1, j * 0.1) + 1) * 0.5;
         noise = Math.pow(noise, 1.5);
 
@@ -46,22 +46,22 @@ export default class MapGenerator {
         const tile = new Tile(new Vector2(i, j), height);
         const textureType = this.getRandomTexture(height, maxHeight);
         tile.texture = textureType;
-        this.createObstacle(textureType, tile, height);
+        //this.createObstacle(textureType, tile, height);
         map.tiles.push(tile);
 
-        const mesh = this.createTile(tile, this.createMaterial(textureType));
+        const mesh = this.createTile(tile, this.createMaterial(textureType), size);
         this.scene.add(mesh);
       }
     }
     this.createSea(size, seaLevel);
     this.createContainer(size, seaLevel);
     this.createFloor(size, maxHeight);
-    this.createClouds(Math.floor(Math.pow(Math.random(), .45) * size / 3), size);
+    //this.createClouds(Math.floor(Math.pow(Math.random(), .45) * size / 3), size);
     
     return map;
   }
-  createTile(tile: Tile, material: MeshPhysicalMaterial): Mesh {
-    let position = tileToPosition(tile.index.x, tile.index.y);
+  createTile(tile: Tile, material: MeshPhysicalMaterial, size: number): Mesh {
+    let position = tileToPosition(tile.index.x - size / 2, tile.index.y - size / 2);
     let geo = new CylinderGeometry(1, 1, tile.height, 6, 1, false);
     geo.translate(position.x, tile.height * 0.5, position.y);
 
@@ -85,9 +85,12 @@ export default class MapGenerator {
     return material;
   }
   createSea(size: number, seaLevel: number): void {
+    if (seaLevel == 0) return
     let texture = this.getTextureFromTextureType(TextureType.WATER_TEXTURE);
+    let geo: BoxGeometry = new BoxGeometry(size * 2 - 2, seaLevel, size * 2 - 6);
+    geo.translate(-.5, seaLevel - 2, -.5)
     let seaMesh: Mesh = new Mesh(
-      new CylinderGeometry(size + 1, size + 1, seaLevel + 0.1, 50),
+      geo,
       new MeshPhysicalMaterial({
         envMap: this.envmap,
         color: new Color("#55aaff").convertSRGBToLinear().multiplyScalar(3),
@@ -107,8 +110,10 @@ export default class MapGenerator {
     this.scene.add(seaMesh);
   }
   createContainer(size: number, seaLevel: number): void {
+    let geo: BoxGeometry = new BoxGeometry(size * 2, seaLevel + 1, size * 2 - 4);
+    geo.translate(-.5, 0, -.5)
     let mapContainer = new Mesh(
-      new CylinderGeometry(size + 1.1, size + 1.1, seaLevel + 1, 50, 1, true),
+      geo,
       new MeshPhysicalMaterial({
         envMap: this.envmap,
         map: this.getTextureFromTextureType(TextureType.DIRT_TEXTURE),
@@ -121,8 +126,10 @@ export default class MapGenerator {
     this.scene.add(mapContainer);
   }
   createFloor(size: number, maxHeight: number): void {
+    let geo: BoxGeometry = new BoxGeometry(size * 2 - 1, 1, size * 2 - 5);
+    geo.translate(-.5, 0, -.5)
     let mapFloor = new Mesh(
-      new CylinderGeometry(size + 2.5, size + 2.5, maxHeight * 0.1, 50),
+      geo,
       new MeshPhysicalMaterial({
         envMap: this.envmap,
         map: this.getTextureFromTextureType(TextureType.DIRT2_TEXTURE),
