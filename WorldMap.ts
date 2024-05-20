@@ -1,6 +1,8 @@
 import { Vector2 } from "three";
 import Tile from "./Tile";
 import { TileStatus } from "./Enums";
+import { Comparator, PriorityQueue, priorityTile } from "./Queue";
+
 
 export default class WorldMap {
     size: number;
@@ -61,8 +63,8 @@ export default class WorldMap {
             pathLength--;
             let neighbors = this.getTileNeighbors(tile, heightDifference);
             neighbors.forEach((neighbor: Tile) => {
-                    neighbor.setTileStatus(TileStatus.REACHABLE); 
-                    this.getReachables(neighbor, pathLength, heightDifference);
+                neighbor.setTileStatus(TileStatus.REACHABLE); 
+                this.getReachables(neighbor, pathLength, heightDifference);
             });
         }
     }
@@ -77,107 +79,63 @@ export default class WorldMap {
             element.setTileStatus(TileStatus.NORMAL, true);
         })
     }
+    convertToAxial(index: Vector2) {
+        const q: number= index.x - (index.y - (index.y&1)) / 2;
+        const r: number = index.y;
+    
+        return new Vector2(q, r)
+    }
     getCostBetweenTwoTiles(start: Tile, target: Tile): number {
-        let resultX = Math.abs(start.index.x - target.index.x);
-        let resultY = Math.abs(start.index.y - target.index.y);
-        let col = Math.floor(resultX + (resultY&1) / 2)
-        let row = resultY
-        const result = col + row;
-        
-        return result;
-    }
-    findPath(start: Tile, goal: Tile, heightDifference: number) {
-        const path = this.discoverPath(start, goal, heightDifference)?.reverse();
-        const ret: Array<Tile> = []
-        
-        const filteredPath = path?.filter((value, index, self) =>
-            index === self.findIndex((t) => (
-              t.estimate === value.estimate && t.cost === value.cost
-            ))
-          )
+        let starto: Vector2 = this.convertToAxial(start.index);
+        let endo: Vector2 = this.convertToAxial(target.index);
+        let dx: number = Math.abs(starto.x - endo.x);
+        let dy: number = Math.abs(starto.y - endo.y);
+        let dz: number = Math.abs(starto.x + starto.y - endo.x - endo.y);
 
-        filteredPath?.forEach((e: any) => {
-            if (ret.length > 0) {
-                let neighbors = this.getTileNeighbors(ret[ret.length - 1], heightDifference);
-                if (neighbors.indexOf(e.state) != -1){
-                    ret.push(e.state as Tile)
+        return Math.floor((dx + dy + dz) / 2)
+    }
+    discoverPath(start: Tile, goal: Tile, heightDifference: number): Map<Tile, Tile|null> {
+        const numberComparator: Comparator<any> = (A: priorityTile, B: priorityTile) => {
+            return  B.priority - A.priority;
+          };
+        let frontier = new PriorityQueue(numberComparator);
+        frontier.add(new priorityTile(start, 0));
+        const came_from: Map<Tile, Tile|null> = new Map()
+        const cost_so_far: Map<Tile, number> = new Map()
+        came_from.set(start, null)
+        cost_so_far.set(start, 0)
+
+        while(frontier.size > 0){
+            const current: Tile = frontier.poll().tile;
+
+            if (current == goal)
+                break
+            
+            this.getTileNeighbors(current, heightDifference).forEach((next) => {
+                const new_cost = (cost_so_far.get(current) || 0) + this.getCostBetweenTwoTiles(current, next);
+                let cost: number = cost_so_far.get(next) as number;
+                if (!cost_so_far.has(next) || new_cost < cost) {
+                    cost_so_far.set(next, new_cost);
+                    const priority = new_cost + this.getCostBetweenTwoTiles(goal, next)
+                    frontier.add(new priorityTile(next, priority))
+                    came_from.set(next,current)
                 }
-            } else {
-                ret.push(e.state as Tile)
-            }
-        });
-        return ret.reverse();
-
+            })
+        }
+        return came_from
+        
     }
-    discoverPath(start: Tile, goal: Tile, heightDifference: number) {
-        // Create an empty data structure to store the explored paths
-        let explored: Array<any> = [];
-        // Create a data structure to store the paths that are being explored
-        let frontier = [{
-        state: start,
-        cost: 0,
-        estimate: this.getCostBetweenTwoTiles(start, goal)
-        }];
-    
-        // While there are paths being explored
-        while (frontier.length > 0) {
-        // Sort the paths in the frontier by cost, with the lowest-cost paths first
-        frontier.sort(function(a, b) {
-            return a.estimate- b.estimate;
-        })
-
-        // Choose the lowest-cost path from the frontier
-        let node = frontier.shift();
-
-        if (!node) return;
-    
-        // Add this nodeto the explored paths
-        explored.push(node);
-        // If this nodereaches the goal, return thenode 
-        if (node.state.index.x == goal.index.x && node.state.index.y == goal.index.y) {
-            return explored
+    findPath(start: Tile, goal: Tile, heightDifference: number): Array<Tile> {
+        const came_from: Map<Tile, Tile | null> = this.discoverPath(start, goal, heightDifference)
+        const path: Array<Tile> = [];
+        let current = goal;
+        if (!came_from.has(goal)) {
+            return path; // no path can be found
         }
-    
-        // Generate the possible next steps from this node's state
-        let next = this.getTileNeighbors(node.state, heightDifference).map(e => {
-            return {
-                state: e,
-                cost: 1,
-            }
-        });
-    
-        // For each possible next step
-        for (let i = 0; i < next.length; i++) {
-            // Calculate the cost of the next step by adding the step's cost to the node's cost
-            let step = next[i];
-            let cost = step.cost + node.cost;
-    
-            // Check if this step has already been explored
-            let isExplored = (explored.find( e => {
-                return e.state.index.x == step.state.index.x && 
-                    e.state.index.y == step.state.index.y
-            }))
-
-            //avoid repeated nodes during the calculation of neighbors
-            let isFrontier = (frontier.find( e => {
-                return e.state.index.x == step.state.index.x && 
-                    e.state.index.y == step.state.index.y
-            }))
-
-
-            // If this step has not been explored
-            if (!isExplored && !isFrontier) {
-                let estimate = cost + this.getCostBetweenTwoTiles(step.state, goal)
-            // Add the step to the frontier, using the cost and the heuristic function to estimate the total cost to reach the goal
-            frontier.push({
-                state: step.state,
-                cost: cost,
-                estimate
-            });
-            }
+        while (current != start) {
+            path.push(current);
+            current = came_from.get(current) as Tile;
         }
-        }
-        // If there are no paths left to explore, return null to indicate that the goal cannot be reached
-        return null;
+        return path;
     }
 };

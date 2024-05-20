@@ -79,8 +79,8 @@ let pmrem = new PMREMGenerator(renderer);
 let envmapTexture = await new RGBELoader().setDataType(THREE.FloatType).loadAsync("assets/envmap.hdr");
 const envmap = pmrem.fromEquirectangular(envmapTexture).texture
 const mapGenerator = new MapGenerator(envmap, scene);
-currentMap = mapGenerator.createMap(20, 0);
-//currentMap = mapGenerator.createMap();
+//currentMap = mapGenerator.createMap(20, 0, 0 ,1);
+currentMap = mapGenerator.createMap();
 
 const clock = new THREE.Clock();
 let daytime = true;

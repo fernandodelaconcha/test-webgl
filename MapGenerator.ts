@@ -30,7 +30,8 @@ export default class MapGenerator {
     this.envmap = envmap;
     this.scene = scene;
   }
-  createMap(size: number = 15, seaLevel: number = 3, maxHeight: number = 10, minHeight: number = 0): WorldMap {
+  createMap(size: number = 20, seaLevel: number = 3, maxHeight: number = 10, minHeight: number = 0): WorldMap {
+    //TODO: add circular map too
     const seed = window.crypto.randomUUID();
     const noise2D = createNoise2D(Alea(seed));
     const map = new WorldMap(size, seaLevel, maxHeight);
@@ -41,12 +42,12 @@ export default class MapGenerator {
         noise = Math.pow(noise, 1.5);
 
         const height = Math.round(noise * maxHeight + minHeight);
-        if (height < seaLevel) continue;
+        if (height <= seaLevel) continue;
 
         const tile = new Tile(new Vector2(i, j), height);
         const textureType = this.getRandomTexture(height, maxHeight);
         tile.texture = textureType;
-        //this.createObstacle(textureType, tile, height);
+        this.createObstacle(textureType, tile, height, size);
         map.tiles.push(tile);
 
         const mesh = this.createTile(tile, this.createMaterial(textureType), size);
@@ -88,7 +89,7 @@ export default class MapGenerator {
     if (seaLevel == 0) return
     let texture = this.getTextureFromTextureType(TextureType.WATER_TEXTURE);
     let geo: BoxGeometry = new BoxGeometry(size * 2 - 2, seaLevel, size * 2 - 6);
-    geo.translate(-.5, seaLevel - 2, -.5)
+    geo.translate(-.5, seaLevel - 3, -.5)
     let seaMesh: Mesh = new Mesh(
       geo,
       new MeshPhysicalMaterial({
@@ -111,7 +112,7 @@ export default class MapGenerator {
   }
   createContainer(size: number, seaLevel: number): void {
     let geo: BoxGeometry = new BoxGeometry(size * 2, seaLevel + 1, size * 2 - 4);
-    geo.translate(-.5, 0, -.5)
+    geo.translate(-.5, -1, -.5)
     let mapContainer = new Mesh(
       geo,
       new MeshPhysicalMaterial({
@@ -127,7 +128,7 @@ export default class MapGenerator {
   }
   createFloor(size: number, maxHeight: number): void {
     let geo: BoxGeometry = new BoxGeometry(size * 2 - 1, 1, size * 2 - 5);
-    geo.translate(-.5, 0, -.5)
+    geo.translate(-.5, -1, -.5)
     let mapFloor = new Mesh(
       geo,
       new MeshPhysicalMaterial({
@@ -246,8 +247,8 @@ export default class MapGenerator {
         return WATER_TEXTURE;
     }
   }
-  createObstacle(textureType: TextureType, tile: Tile, height: number): void {
-    let position = tileToPosition(tile.index.x, tile.index.y);
+  createObstacle(textureType: TextureType, tile: Tile, height: number, size: number): void {
+    let position = tileToPosition(tile.index.x - size / 2, tile.index.y - size / 2);
     if (Math.random() > 0.8) {
       switch(textureType){
         case (TextureType.SAND_TEXTURE):
