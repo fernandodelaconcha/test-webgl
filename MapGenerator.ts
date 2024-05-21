@@ -35,6 +35,7 @@ export default class MapGenerator {
     const seed = window.crypto.randomUUID();
     const noise2D = createNoise2D(Alea(seed));
     const map = new WorldMap(size, seaLevel, maxHeight);
+    const tiles: Array<Tile> = [];
     for (let i = 0 ; i < size; i++) {
       for (let j = 0; j < size; j++) {
         if (i > size && j > size) continue;
@@ -48,12 +49,13 @@ export default class MapGenerator {
         const textureType = this.getRandomTexture(height, maxHeight);
         tile.texture = textureType;
         this.createObstacle(textureType, tile, height, size);
-        map.tiles.push(tile);
+        tiles.push(tile);
 
         const mesh = this.createTile(tile, this.createMaterial(textureType), size);
         this.scene.add(mesh);
       }
     }
+    map.setTiles(tiles);
     this.createSea(size, seaLevel);
     this.createContainer(size, seaLevel);
     this.createFloor(size, maxHeight);

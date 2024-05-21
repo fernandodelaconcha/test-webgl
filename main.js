@@ -97,15 +97,16 @@ function onPointerMove(event) {
     }
   })
   let hovered = getTileFromRaycast(event, canvas, camera, scene);
-  if (hovered && (hovered.status == TileStatus.REACHABLE || hovered.status == TileStatus.PATH)) {
+  if (!hovered || hovered.hasObstacle) return;
+  if (hovered.status == TileStatus.REACHABLE || hovered.status == TileStatus.PATH) {
     currentMap.applyStatusToTiles(TileStatus.PATH, TileStatus.REACHABLE);
     hovered.setTileStatus(TileStatus.TARGET);
-    const path = currentMap.findPath(selectedTile, hovered, 2)
+    const path = currentMap.pathfinding.findPath(selectedTile, hovered, 2)
     path.forEach(element => {
       element.setTileStatus(TileStatus.PATH)
     });
   } else {
-    hovered?.setTileStatus(TileStatus.HOVERED);
+    hovered.setTileStatus(TileStatus.HOVERED);
   }
 }
 
@@ -117,7 +118,9 @@ function onMouseDown(event) {
     originTile.setTileStatus(TileStatus.NORMAL, true);
     currentMap.applyStatusToTiles(TileStatus.REACHABLE, TileStatus.NORMAL);
   };
-  if (selectedTile) onTileClicked(originTile, selectedTile)
+  if (selectedTile  instanceof Tile && !selectedTile.hasObstacle ) {
+    onTileClicked(originTile, selectedTile)
+    }
   }
 }
 
@@ -128,7 +131,10 @@ function onTileClicked(origin, target) {
     return;
   }
   target.setTileStatus(TileStatus.SELECTED);
-  currentMap.getReachables(target, MOVEMENT, 2)
+  const reachables = currentMap.pathfinding.getReachables(target, MOVEMENT, 2);
+  reachables.forEach((reachable) => {
+    reachable.setTileStatus(TileStatus.REACHABLE);
+  })
 }
 
 function onKeyPress(event) {
