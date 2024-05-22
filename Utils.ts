@@ -36,3 +36,9 @@ export function isNeighborForOddTile(tile: Tile, target: Tile): boolean {
   tile.index.x == target.index.x + 1 && tile.index.y == target.index.y ||
   tile.index.x == target.index.x + 1 && tile.index.y == target.index.y - 1
 }
+
+export function getRandomIntInRange(min: number, max: number): number {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}

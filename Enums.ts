@@ -7,6 +7,11 @@ export enum TextureType {
     WATER_TEXTURE
 }
 
+export enum MapShape {
+    BOX,
+    CIRCLE
+}
+
 export enum TileStatus {
     NORMAL,
     HOVERED,

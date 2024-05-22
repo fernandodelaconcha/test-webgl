@@ -1,10 +1,10 @@
 import { createNoise2D } from 'simplex-noise';
 import Tile from './Tile';
 import WorldMap from './WorldMap';
-import { Vector2, CylinderGeometry, Color, SphereGeometry, Mesh, MeshPhysicalMaterial, Scene, DoubleSide, TextureLoader, MeshStandardMaterial, MeshBasicMaterial, Texture, BoxGeometry } from 'three';
+import { Vector2, CylinderGeometry, Color, SphereGeometry, Mesh, MeshPhysicalMaterial, Scene, DoubleSide, TextureLoader, MeshStandardMaterial, MeshBasicMaterial, Texture, BoxGeometry, BufferGeometry } from 'three';
 import { BufferGeometryUtils } from 'three/examples/jsm/Addons.js';
 import Alea from 'alea';
-import { TextureType } from './Enums';
+import { MapShape, TextureType } from './Enums';
 
 const STONE_CONSTANT = .8;
 const DIRT_CONSTANT = .7;
@@ -18,9 +18,18 @@ const SAND_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/sand.j
 const DIRT2_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/dirt2.jpg");
 const WATER_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/water.jpg");
 
-export function tileToPosition(tileX: number, tileY: number): Vector2 {
-  let col = tileX + (tileY&1) / 2
-  let row = tileY
+export function tileToPosition(tileX: number, tileY: number, shape: MapShape, size: number): Vector2 {
+  let col: number;
+  let row: number;
+  if (shape == MapShape.CIRCLE) {
+    col = tileX + (tileY&1) / 2
+    row = tileY
+  } else {
+    let x = tileX - size / 2
+    let y = tileY - size / 2
+    col = x + (y&1) / 2
+    row = y
+  }
   return new Vector2(col * 1.77, row * 1.535);
 }
 export default class MapGenerator {
@@ -30,41 +39,42 @@ export default class MapGenerator {
     this.envmap = envmap;
     this.scene = scene;
   }
-  createMap(size: number = 20, seaLevel: number = 3, maxHeight: number = 10, minHeight: number = 0): WorldMap {
-    //TODO: add circular map too
+  createMap(shape: MapShape = MapShape.BOX, size: number = 16, seaLevel: number = 3, maxHeight: number = 10, minHeight: number = 0): WorldMap {
     const seed = window.crypto.randomUUID();
     const noise2D = createNoise2D(Alea(seed));
     const map = new WorldMap(size, seaLevel, maxHeight);
     const tiles: Array<Tile> = [];
-    for (let i = 0 ; i < size; i++) {
-      for (let j = 0; j < size; j++) {
-        if (i > size && j > size) continue;
+    const start = (shape == MapShape.CIRCLE ? 1-size : 0);
+    for (let i = start; i < size; i++) {
+      for (let j = start; j < size; j++) {
+        let position = tileToPosition(i, j, shape, size);
+        if (shape == MapShape.CIRCLE && position.length() > size) continue;
+        else if (shape == MapShape.BOX && i >= size && j >= size) continue;
         let noise = (noise2D(i * 0.1, j * 0.1) + 1) * 0.5;
         noise = Math.pow(noise, 1.5);
 
-        const height = Math.round(noise * maxHeight + minHeight);
-        if (height <= seaLevel) continue;
+        const height = Math.min(Math.round((noise * maxHeight) + minHeight - seaLevel), maxHeight);
+        if (height <= 0) continue;
 
         const tile = new Tile(new Vector2(i, j), height);
-        const textureType = this.getRandomTexture(height, maxHeight);
+        const textureType = this.getRandomTexture(height, maxHeight, seaLevel);
         tile.texture = textureType;
-        this.createObstacle(textureType, tile, height, size);
+        this.createObstacle(textureType, tile, height, position);
         tiles.push(tile);
 
-        const mesh = this.createTile(tile, this.createMaterial(textureType), size);
+        const mesh = this.createTile(tile, this.createMaterial(textureType), position);
         this.scene.add(mesh);
       }
     }
     map.setTiles(tiles);
-    this.createSea(size, seaLevel);
-    this.createContainer(size, seaLevel);
-    this.createFloor(size, maxHeight);
-    //this.createClouds(Math.floor(Math.pow(Math.random(), .45) * size / 3), size);
+    this.createSea(shape, size, seaLevel);
+    this.createContainer(shape, size, seaLevel);
+    this.createFloor(shape, size, seaLevel);
+    this.createClouds(Math.floor(Math.pow(Math.random(), .45) * size / 3), size);
     
     return map;
   }
-  createTile(tile: Tile, material: MeshPhysicalMaterial, size: number): Mesh {
-    let position = tileToPosition(tile.index.x - size / 2, tile.index.y - size / 2);
+  createTile(tile: Tile, material: MeshPhysicalMaterial, position: Vector2): Mesh {
     let geo = new CylinderGeometry(1, 1, tile.height, 6, 1, false);
     geo.translate(position.x, tile.height * 0.5, position.y);
 
@@ -87,11 +97,17 @@ export default class MapGenerator {
 
     return material;
   }
-  createSea(size: number, seaLevel: number): void {
+  createSea(shape: MapShape, size: number, seaLevel: number): void {
     if (seaLevel == 0) return
     let texture = this.getTextureFromTextureType(TextureType.WATER_TEXTURE);
-    let geo: BoxGeometry = new BoxGeometry(size * 2 - 2, seaLevel, size * 2 - 6);
-    geo.translate(-.5, seaLevel - 3, -.5)
+    let geo: BufferGeometry;
+    if (shape == MapShape.CIRCLE) {
+      geo = new CylinderGeometry(size + 1, size + 1, seaLevel - .1, 50);
+      geo.translate(0, 0, 0)
+    } else {
+      geo = new BoxGeometry(size * 2 - 2, seaLevel - .1, size * 2 - 6);
+      geo.translate(-.5, 0, -.5)
+    }
     let seaMesh: Mesh = new Mesh(
       geo,
       new MeshPhysicalMaterial({
@@ -109,12 +125,19 @@ export default class MapGenerator {
       }) as unknown as MeshBasicMaterial
     );
     seaMesh.receiveShadow = true;
-    seaMesh['position'].set(0, seaLevel - 1, 0);
+    seaMesh.name = "Container";
     this.scene.add(seaMesh);
   }
-  createContainer(size: number, seaLevel: number): void {
-    let geo: BoxGeometry = new BoxGeometry(size * 2, seaLevel + 1, size * 2 - 4);
-    geo.translate(-.5, -1, -.5)
+  createContainer(shape: MapShape, size: number, seaLevel: number): void {
+    let geo: BufferGeometry;
+    if (shape == MapShape.CIRCLE) {
+      geo = new CylinderGeometry(size + 1.1, size + 1.1, Math.max(seaLevel + 1, 2.8), 50);
+      geo.translate(0, -1, 0)
+    } else {
+      geo = new BoxGeometry(size * 2, Math.max(seaLevel + 1, 2.8), size * 2 - 4);
+      geo.translate(-.5, -1, -.5)
+    }
+    if (seaLevel == 0) geo.translate(0,1,0)
     let mapContainer = new Mesh(
       geo,
       new MeshPhysicalMaterial({
@@ -125,12 +148,18 @@ export default class MapGenerator {
       }) as unknown as MeshBasicMaterial
     );
     mapContainer.receiveShadow = true;
-    mapContainer['position'].set(0, seaLevel - 1, 0);
+    mapContainer.name = "Container";
     this.scene.add(mapContainer);
   }
-  createFloor(size: number, maxHeight: number): void {
-    let geo: BoxGeometry = new BoxGeometry(size * 2 - 1, 1, size * 2 - 5);
-    geo.translate(-.5, -1, -.5)
+  createFloor(shape: MapShape, size: number, seaLevel: number): void {
+    let geo: BufferGeometry; 
+    if (shape == MapShape.CIRCLE) {
+      geo = new CylinderGeometry(size + 1, size + 1, 1, 50);
+      geo.translate(0, -(seaLevel + 2 - seaLevel/2), 0)
+    } else {
+      geo = new BoxGeometry(size * 2 - 1, 1, size * 2 - 5);
+      geo.translate(-.5, -(seaLevel + 2 - seaLevel/2), -.5)
+    }
     let mapFloor = new Mesh(
       geo,
       new MeshPhysicalMaterial({
@@ -141,7 +170,7 @@ export default class MapGenerator {
       }) as unknown as MeshBasicMaterial
     );
     mapFloor.receiveShadow = true;
-    mapFloor['position'].set(0, - maxHeight * .05, 0);
+    mapFloor.name = "Container";
     this.scene.add(mapFloor);
   }
   createTree(height: number, position: Vector2): void {
@@ -221,7 +250,8 @@ export default class MapGenerator {
     mesh.name = "Cloud";
     this.scene.add(mesh);
   }
-  getRandomTexture(height: number, maxHeight: number): TextureType {
+  getRandomTexture(rawHeight: number, maxHeight: number, seaLevel: number): TextureType {
+    const height = rawHeight
     if (height > STONE_CONSTANT * maxHeight) {
       return TextureType.STONE_TEXTURE;
     } else if (height > DIRT_CONSTANT * maxHeight) {
@@ -249,8 +279,7 @@ export default class MapGenerator {
         return WATER_TEXTURE;
     }
   }
-  createObstacle(textureType: TextureType, tile: Tile, height: number, size: number): void {
-    let position = tileToPosition(tile.index.x - size / 2, tile.index.y - size / 2);
+  createObstacle(textureType: TextureType, tile: Tile, height: number, position: Vector2): void {
     if (Math.random() > 0.8) {
       switch(textureType){
         case (TextureType.SAND_TEXTURE):

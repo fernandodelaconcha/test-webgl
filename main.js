@@ -6,8 +6,8 @@ import { OrbitControls } from 'three/examples/jsm/Addons.js';
 import Tile from './Tile';
 import { PMREMGenerator } from 'three/src/extras/PMREMGenerator.js';
 import MapGenerator from './MapGenerator';
-import { Actions, TileStatus } from './Enums';
-import { getTileFromRaycast } from './Utils'
+import { Actions, MapShape, TileStatus } from './Enums';
+import { getRandomIntInRange, getTileFromRaycast } from './Utils'
 
 let sunBackground = document.querySelector(".sun-background");
 let moonBackground = document.querySelector(".moon-background");
@@ -79,8 +79,20 @@ let pmrem = new PMREMGenerator(renderer);
 let envmapTexture = await new RGBELoader().setDataType(THREE.FloatType).loadAsync("assets/envmap.hdr");
 const envmap = pmrem.fromEquirectangular(envmapTexture).texture
 const mapGenerator = new MapGenerator(envmap, scene);
-//currentMap = mapGenerator.createMap(20, 0, 0 ,1);
-currentMap = mapGenerator.createMap();
+//plateau
+//currentMap = mapGenerator.createMap(MapShape.BOX, 20, 5, 10 ,10);
+
+//circle hills no water
+//currentMap = mapGenerator.createMap(MapShape.CIRCLE, 16, 2, 10 , 3);
+
+// circle islands
+//currentMap = mapGenerator.createMap(MapShape.CIRCLE, 16, 4, 10 , 2);
+
+// all water floating rocks
+//currentMap = mapGenerator.createMap(MapShape.CIRCLE, 29, 5, 6, 2);
+
+//currentMap = mapGenerator.createMap(MapShape.CIRCLE);
+currentMap = mapGenerator.createMap(MapShape.BOX);
 
 const clock = new THREE.Clock();
 let daytime = true;
@@ -144,10 +156,16 @@ function onKeyPress(event) {
       objects = objects.concat(scene.getObjectsByProperty('name','Cloud'));
       objects = objects.concat(scene.getObjectsByProperty('name','Tree'));
       objects = objects.concat(scene.getObjectsByProperty('name','Stone'));
+      objects = objects.concat(scene.getObjectsByProperty('name','Container'));
       for (let i = 0; i < objects.length; i++) {
         scene.remove(objects[i]);
       }
-      currentMap = mapGenerator.createMap();
+      let size = getRandomIntInRange(16, 30)
+      let seaLevel = getRandomIntInRange(0, 5)
+      let maxHeight = getRandomIntInRange(5, 10)
+      let minHeight = getRandomIntInRange(0, 5);
+      console.log ({size,seaLevel, maxHeight, minHeight})
+      currentMap = mapGenerator.createMap(getRandomIntInRange(0, 1),size,seaLevel, maxHeight, minHeight);
       break;
 
     case 'Enter':
