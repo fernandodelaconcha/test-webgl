@@ -8,77 +8,45 @@ import { PMREMGenerator } from 'three/src/extras/PMREMGenerator.js';
 import MapGenerator from './MapGenerator';
 import { Actions, MapShape, TileStatus } from './Enums';
 import { getRandomIntInRange, getTileFromRaycast } from './Utils'
+import { Game } from './Game';
 
 let sunBackground = document.querySelector(".sun-background");
 let moonBackground = document.querySelector(".moon-background");
 let canvas = document.querySelector('#bg');
 
+const fps = 30;
+const interval = 1000/fps
+let timer = 0;
+let lastTime = 0;
+
 const MOVEMENT = 4;
-
-// let sunBackground : HTMLElement = document.querySelector(".sun-background") as HTMLElement;
-// let moonBackground : HTMLElement = document.querySelector(".moon-background") as HTMLElement;
-
-const scene = new THREE.Scene();
-
-const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 1000);
-camera.position.set(0, 25, 25);
-
-const renderer = new THREE.WebGLRenderer({
-  canvas,
-  antialias: true,
-  alpha: true
-});
-
 let currentMap;
 let currentAction = Actions.SELECT_TILE;
 let selectedTile;
 
-renderer.setPixelRatio(devicePixelRatio);
-renderer.setSize(innerWidth, innerHeight);
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.physicallyCorrectLights = true;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+let daytime = true;
+let animating = false;
 
-const sunLight = new THREE.DirectionalLight(new THREE.Color("#FFCB8E").convertSRGBToLinear(), 3.5);
-sunLight.position.set(10, 20, 10);
-sunLight.castShadow = true;
-sunLight.shadow.mapSize.width = 512;
-sunLight.shadow.mapSize.height = 512;
-sunLight.shadow.camera.near = .5;
-sunLight.shadow.camera.far = 100;
-sunLight.shadow.camera.left = -10;
-sunLight.shadow.camera.bottom = -10;
-sunLight.shadow.camera.top = 10;
-sunLight.shadow.camera.right = 10;
+let game = new Game(canvas, innerWidth, innerHeight);
 
-const moonLight = new THREE.DirectionalLight(new THREE.Color("#77ccff").convertSRGBToLinear(), 0);
-moonLight.position.set(-10, 20, 10);
-moonLight.castShadow = true;
-moonLight.shadow.mapSize.width = 512;
-moonLight.shadow.mapSize.height = 512;
-moonLight.shadow.camera.near = .5;
-moonLight.shadow.camera.far = 100;
-moonLight.shadow.camera.left = -10;
-moonLight.shadow.camera.bottom = -10;
-moonLight.shadow.camera.top = 10;
-moonLight.shadow.camera.right = 10;
+// let sunBackground : HTMLElement = document.querySelector(".sun-background") as HTMLElement;
+// let moonBackground : HTMLElement = document.querySelector(".moon-background") as HTMLElement;
 
-scene.add(sunLight);
-
-const controls = new OrbitControls(camera, renderer.domElement);
+const controls = new OrbitControls(game.camera, canvas);
 controls.dampingFactor = 0.05;
 controls.enableDamping = true;
 controls.listenToKeyEvents(window)
 controls.mouseButtons= {
-	MIDDLE: THREE.MOUSE.ROTATE
+  MIDDLE: THREE.MOUSE.ROTATE
 }
 
-renderer.render(scene, camera);
-let pmrem = new PMREMGenerator(renderer);
+game.render();
+gameLoop(0);
+
+let pmrem = new PMREMGenerator(game.renderer);
 let envmapTexture = await new RGBELoader().setDataType(THREE.FloatType).loadAsync("assets/envmap.hdr");
 const envmap = pmrem.fromEquirectangular(envmapTexture).texture
-const mapGenerator = new MapGenerator(envmap, scene);
+const mapGenerator = new MapGenerator(envmap, game.scene);
 //plateau
 //currentMap = mapGenerator.createMap(MapShape.BOX, 20, 5, 10 ,10);
 
@@ -94,12 +62,8 @@ const mapGenerator = new MapGenerator(envmap, scene);
 //currentMap = mapGenerator.createMap(MapShape.CIRCLE);
 currentMap = mapGenerator.createMap(MapShape.BOX);
 
-const clock = new THREE.Clock();
-let daytime = true;
-let animating = false;
-
 function onPointerMove(event) {
-  scene.children.forEach((element) => {
+  game.scene.children.forEach((element) => {
     if (element.userData instanceof Tile){
       if (element.userData.status == TileStatus.HOVERED) {
         element.userData.setTileStatus(TileStatus.NORMAL, true);
@@ -108,7 +72,7 @@ function onPointerMove(event) {
       }
     }
   })
-  let hovered = getTileFromRaycast(event, canvas, camera, scene);
+  let hovered = getTileFromRaycast(event, canvas, game.camera, game.scene);
   if (!hovered || hovered.hasObstacle) return;
   if (hovered.status == TileStatus.REACHABLE || hovered.status == TileStatus.PATH) {
     currentMap.applyStatusToTiles(TileStatus.PATH, TileStatus.REACHABLE);
@@ -125,7 +89,7 @@ function onPointerMove(event) {
 function onMouseDown(event) {
   if (event.which == 1) {
   const originTile = selectedTile;
-  selectedTile = getTileFromRaycast(event, canvas, camera, scene);
+  selectedTile = getTileFromRaycast(event, canvas, game.camera, game.scene);
   if (originTile) {
     originTile.setTileStatus(TileStatus.NORMAL, true);
     currentMap.applyStatusToTiles(TileStatus.REACHABLE, TileStatus.NORMAL);
@@ -151,21 +115,17 @@ function onTileClicked(origin, target) {
 
 function onKeyPress(event) {
   switch (event.key) {
+    case 'Escape':
+      game.quitGame();
+    break;
     case 'r':
-      let objects = scene.getObjectsByProperty('name','Tile');
-      objects = objects.concat(scene.getObjectsByProperty('name','Cloud'));
-      objects = objects.concat(scene.getObjectsByProperty('name','Tree'));
-      objects = objects.concat(scene.getObjectsByProperty('name','Stone'));
-      objects = objects.concat(scene.getObjectsByProperty('name','Container'));
-      for (let i = 0; i < objects.length; i++) {
-        scene.remove(objects[i]);
-      }
+      game.cleanScene();
       let size = getRandomIntInRange(16, 30)
       let seaLevel = getRandomIntInRange(0, 5)
       let maxHeight = getRandomIntInRange(5, 10)
       let minHeight = getRandomIntInRange(0, 5);
       console.log ({size,seaLevel, maxHeight, minHeight})
-      currentMap = mapGenerator.createMap(getRandomIntInRange(0, 1),size,seaLevel, maxHeight, minHeight);
+      currentMap = mapGenerator.createMap(getRandomIntInRange(0, 1),size, seaLevel, maxHeight, minHeight);
       break;
 
     case 'Enter':
@@ -186,11 +146,11 @@ function onKeyPress(event) {
           daytime = !daytime;
         },
         update: () => {
-          sunLight.intensity = 3.5 * (1 - obj.t);
-          moonLight.intensity = 3.5 * obj.t;
+          game.lights.sunLight.intensity = 3.5 * (1 - obj.t);
+          game.lights.moonLight.intensity = 3.5 * obj.t;
           
-          sunLight.position.setY(20 * (1 - obj.t));
-          moonLight.position.setY(20 * obj.t);
+          game.lights.sunLight.position.setY(20 * (1 - obj.t));
+          game.lights.moonLight.position.setY(20 * obj.t);
     
           sunBackground.style.opacity = 1 - obj.t;
           moonBackground.style.opacity = obj.t;
@@ -204,44 +164,22 @@ function onKeyPress(event) {
       break;
   }
 }
-
-function gameLoop() {
-  let delta = clock.getDelta();
-  requestAnimationFrame(gameLoop);
-  controls.update();
-  renderer.render(scene, camera);
-  
-  scene.children.forEach(object => {
-    if (object.userData instanceof Tile) {
-      switch (object.userData.status) {
-        case TileStatus.FOV:
-          object.material.color.set( 0x000000 );
-          break;
-        case TileStatus.TARGET:
-          object.material.color.set( 0x0000ff );
-          break;  
-        case TileStatus.PATH:
-          object.material.color.set( 0xC5E223 );
-          break;
-        case TileStatus.REACHABLE:
-          object.material.color.set( 0x03adfc );
-          break;
-        case TileStatus.SELECTED:
-          object.material.color.set( 0xff0000 );
-          break;
-        case TileStatus.HOVERED:
-          object.material.color.set( 0xffff00 );
-          break;
-        default:
-          object.material.color.set("white")
-          break;
-      }
-    }
-  });
+function gameLoop(timeStamp = 0) {
+  const delta = timeStamp - lastTime;
+  lastTime = timeStamp;
+  if (timer > interval) {
+    timer = 0;
+    controls.update();
+    game.render();
+  }
+  timer += delta;
+  if (game.isGameOver) {
+    cancelAnimationFrame(gameLoop);
+  } else {
+    requestAnimationFrame(gameLoop);
+  }
 }
 
 window.addEventListener('pointermove', onPointerMove );
-window.addEventListener('keypress', onKeyPress);
+window.addEventListener('keydown', onKeyPress);
 window.addEventListener('mousedown', onMouseDown);
-
-gameLoop();
