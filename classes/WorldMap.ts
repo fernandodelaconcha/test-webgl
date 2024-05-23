@@ -1,16 +1,17 @@
 import { Vector2 } from "three";
 import Tile from "./Tile";
-import { TileStatus } from "../Enums";
+import { MapShape, TileStatus } from "../utils/Enums";
 import { Pathfinding } from "./Pathfinding";
 
 
 export default class WorldMap {
+    shape: MapShape;
     size: number;
     seaLevel: number;
     maxHeight: number;
     tiles: Array<Tile>;
     pathfinding: Pathfinding;
-    constructor(size: number = 15, seaLevel: number = 3, maxHeight: number = 10) {
+    constructor(shape: MapShape, size: number = 15, seaLevel: number = 3, maxHeight: number = 10) {
         this.size = size;
         this.seaLevel = seaLevel;
         this.maxHeight = maxHeight;
@@ -40,5 +41,13 @@ export default class WorldMap {
         this.tiles.forEach((element) => {
             element.setTileStatus(TileStatus.NORMAL, true);
         })
+    }
+    moveUnitToTile(origin: Tile, target: Tile) {
+        const unit = origin.unit;
+        origin.unit = null;
+        origin.hasObstacle = false;
+
+        target.unit = unit;
+        target.hasObstacle = true;        
     }
 };

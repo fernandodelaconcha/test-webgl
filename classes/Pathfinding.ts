@@ -1,7 +1,7 @@
 import { Vector2 } from "three";
 import Tile from "./Tile";
 import { Comparator, PriorityQueue, priorityTile } from "./Queue";
-import { isNeighborForEvenTile, isNeighborForOddTile } from "../Utils";
+import { isNeighborForEvenTile, isNeighborForOddTile } from "../utils/Utils";
 
 export class Pathfinding {
     tiles: Array<Tile>;

@@ -23,6 +23,7 @@ export enum TileStatus {
 }
 
 export enum Actions {
+    NONE,
     SELECT_TILE,
     MOVE_UNIT
 }

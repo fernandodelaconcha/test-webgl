@@ -1,7 +1,9 @@
-import { ACESFilmicToneMapping, Color, DirectionalLight, PerspectiveCamera, Scene, WebGLRenderer } from "three";
+import { ACESFilmicToneMapping, Color, DirectionalLight, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
 import Tile from "./Tile";
-import { TileStatus } from "../Enums";
+import { MapShape, TileStatus } from "../utils/Enums";
 import { Mesh } from "three";
+import { tileToPosition } from "../utils/Utils";
+import { Unit } from "./Unit";
 
 export class Game {
 
@@ -69,7 +71,7 @@ export class Game {
     }
   }
   render(): void {
-    this.renderer.render(this.scene, this.camera);
+    this.scene.getObjectsByProperty('name', 'Unit').forEach(e => this.scene.remove(e));
     this.scene.children.forEach((object) => {
       if (object instanceof Mesh && object.userData instanceof Tile) {
         switch (object.userData.status) {
@@ -97,6 +99,19 @@ export class Game {
         }
       }
     });
+    this.renderer.render(this.scene, this.camera);
+  }
+  moveUnitMeshToTile(originTile: Tile, targetTile: Tile, mapShape: MapShape, size: number) {
+    if (!(originTile.unit instanceof Unit)) return;
+    const unitMesh = this.scene.getObjectByProperty('uuid', originTile.unit.id as string) as Mesh;
+    const originPosition = tileToPosition(originTile.index.x, originTile.index.y, mapShape, size);
+    const targetPosition = tileToPosition(targetTile.index.x, targetTile.index.y, mapShape, size);
+
+    const heightDifference = 
+    unitMesh.translateX(targetPosition.x - originPosition.x);
+    unitMesh.translateY(targetTile.height - originTile.height);
+    unitMesh.translateZ(targetPosition.y - originPosition.y);
+    this.render()
   }
   cleanScene(): void {
     let objects = this.scene.getObjectsByProperty('name', 'Tile');

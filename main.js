@@ -3,10 +3,10 @@ import * as THREE from 'three';
 import { RGBELoader } from 'three/examples/jsm/Addons.js';
 import { PMREMGenerator } from 'three/src/extras/PMREMGenerator.js';
 import MapGenerator from './classes/MapGenerator';
-import { MapShape } from './Enums';
+import { MapShape } from './utils/Enums';
 import { Game } from './classes/Game';
 import { Controls } from './classes/Controls';
-import { getRandomIntInRange } from "./Utils";
+import { getRandomIntInRange } from "./utils/Utils";
 
 const FPS = 30;
 const INTERVAL = 1000 / FPS;

@@ -1,10 +1,12 @@
 import { createNoise2D } from 'simplex-noise';
 import Tile from './Tile';
 import WorldMap from './WorldMap';
-import { Vector2, CylinderGeometry, Color, SphereGeometry, Mesh, MeshPhysicalMaterial, Scene, DoubleSide, TextureLoader, MeshStandardMaterial, MeshBasicMaterial, Texture, BoxGeometry, BufferGeometry } from 'three';
+import { Vector2, CylinderGeometry, Color, SphereGeometry, Mesh, MeshPhysicalMaterial, Scene, DoubleSide, TextureLoader, MeshStandardMaterial, MeshBasicMaterial, Texture, BoxGeometry, BufferGeometry, Vector3 } from 'three';
 import { BufferGeometryUtils } from 'three/examples/jsm/Addons.js';
 import Alea from 'alea';
-import { MapShape, TextureType } from '../Enums';
+import { MapShape, TextureType } from '../utils/Enums';
+import { Unit } from './Unit';
+import { tileToPosition } from '../utils/Utils';
 
 const STONE_CONSTANT = .8;
 const DIRT_CONSTANT = .7;
@@ -17,21 +19,6 @@ const GRASS_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/grass
 const SAND_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/sand.jpg");
 const DIRT2_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/dirt2.jpg");
 const WATER_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/water.jpg");
-
-export function tileToPosition(tileX: number, tileY: number, shape: MapShape, size: number): Vector2 {
-  let col: number;
-  let row: number;
-  if (shape == MapShape.CIRCLE) {
-    col = tileX + (tileY & 1) / 2
-    row = tileY
-  } else {
-    let x = tileX - size / 2
-    let y = tileY - size / 2
-    col = x + (y & 1) / 2
-    row = y
-  }
-  return new Vector2(col * 1.77, row * 1.535);
-}
 export default class MapGenerator {
   envmap: Texture;
   scene: Scene;
@@ -42,7 +29,7 @@ export default class MapGenerator {
   createMap(shape: MapShape = MapShape.BOX, size: number = 16, seaLevel: number = 3, maxHeight: number = 10, minHeight: number = 0): WorldMap {
     const seed = window.crypto.randomUUID();
     const noise2D = createNoise2D(Alea(seed));
-    const map = new WorldMap(size, seaLevel, maxHeight);
+    const map = new WorldMap(shape, size, seaLevel, maxHeight);
     const tiles: Array<Tile> = [];
     const start = (shape == MapShape.CIRCLE ? 1 - size : 0);
     for (let i = start; i < size; i++) {
@@ -59,7 +46,7 @@ export default class MapGenerator {
         const tile = new Tile(new Vector2(i, j), height);
         const textureType = this.getRandomTexture(height, maxHeight, seaLevel);
         tile.texture = textureType;
-        this.createObstacle(textureType, tile, height, position);
+        this.populateWorld(textureType, tile, height, position);
         tiles.push(tile);
 
         const mesh = this.createTile(tile, this.createMaterial(textureType), position);
@@ -83,6 +70,7 @@ export default class MapGenerator {
     mesh.receiveShadow = true;
     mesh.name = 'Tile';
     mesh.userData = tile;
+    tile.id = mesh.uuid;
 
     return mesh;
   }
@@ -279,8 +267,9 @@ export default class MapGenerator {
         return WATER_TEXTURE;
     }
   }
-  createObstacle(textureType: TextureType, tile: Tile, height: number, position: Vector2): void {
-    if (Math.random() > 0.8) {
+  populateWorld(textureType: TextureType, tile: Tile, height: number, position: Vector2): void {
+    let random = Math.random();
+    if (random > 0.8) {
       switch (textureType) {
         case (TextureType.SAND_TEXTURE):
         case (TextureType.STONE_TEXTURE):
@@ -294,5 +283,25 @@ export default class MapGenerator {
           break;
       }
     }
+    //spawning random units on map
+    else if (random < .05) {
+      this.createUnit(tile, position, height, 'blue')
+    }
+    else if (random < .1) {
+      this.createUnit(tile, position, height, 'red')
+    }
+  }
+  createUnit(tile: Tile, position: Vector2, height: number, color: string): void {
+    tile.unit = new Unit('caca', 30);
+    tile.hasObstacle = true;
+    let geo = new SphereGeometry(.5);
+    geo.translate(position.x, height + .5, position.y)
+
+    let mesh = new Mesh(geo, new MeshBasicMaterial({ color }));
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.name = 'Tile';
+    tile.unit.id = mesh.uuid;
+    this.scene.add(mesh);
   }
 }

@@ -2,8 +2,8 @@ import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { Game } from "./Game";
 import { MOUSE } from "three";
 import Tile from "./Tile";
-import { TileStatus } from "../Enums";
-import { getRandomIntInRange, getTileFromRaycast } from "../Utils";
+import { Actions, TileStatus } from "../utils/Enums";
+import { getRandomIntInRange, getTileFromRaycast } from "../utils/Utils";
 import WorldMap from "./WorldMap";
 import anime from 'animejs';
 
@@ -12,10 +12,11 @@ let daytime = true;
 let animating = false;
 
 export class Controls {
-  game: Game
-  orbitControls: OrbitControls
-  currentMap: WorldMap
-  selectedTile: Tile
+  game: Game;
+  orbitControls: OrbitControls;
+  currentMap: WorldMap;
+  selectedTile: Tile;
+  selectedAction: Actions = Actions.SELECT_TILE;
   constructor(game: Game) {
     this.game = game;
     this.orbitControls = new OrbitControls(game.camera, game.renderer.domElement);
@@ -45,7 +46,7 @@ export class Controls {
       }
     })
     let hovered = getTileFromRaycast(event, this.game);
-    if (!hovered || hovered.hasObstacle) return;
+    if (!hovered || (hovered.hasObstacle && !hovered.unit)) return;
     if (hovered.status == TileStatus.REACHABLE || hovered.status == TileStatus.PATH) {
       this.currentMap.applyStatusToTiles(TileStatus.PATH, TileStatus.REACHABLE);
       hovered.setTileStatus(TileStatus.TARGET);
@@ -61,21 +62,26 @@ export class Controls {
     if (event.which == 1) {
       const originTile = this.selectedTile;
       this.selectedTile = getTileFromRaycast(event, this.game) as Tile;
-      if (originTile) {
+      if (originTile instanceof Tile) {
         originTile.setTileStatus(TileStatus.NORMAL, true);
         this.currentMap.applyStatusToTiles(TileStatus.REACHABLE, TileStatus.NORMAL);
       };
-      if (this.selectedTile instanceof Tile && !this.selectedTile.hasObstacle) {
-        originTile?.setTileStatus(TileStatus.NORMAL)
-        if (this.selectedTile.status == TileStatus.TARGET) {
+      if (this.selectedTile instanceof Tile) {
+        if (this.selectedAction == Actions.MOVE_UNIT && this.selectedTile.status == TileStatus.TARGET) {
+          this.game.moveUnitMeshToTile(originTile, this.selectedTile, this.currentMap.shape, this.currentMap.size);
+          this.currentMap.moveUnitToTile(originTile, this.selectedTile);
           this.currentMap.clearStatusFromAllTiles();
+          this.selectedAction = Actions.SELECT_TILE;
           return;
         }
-        this.selectedTile.setTileStatus(TileStatus.SELECTED);
-        const reachables = this.currentMap.pathfinding.getReachables(this.selectedTile, MOVEMENT, 2);
-        reachables.forEach((reachable) => {
-          reachable.setTileStatus(TileStatus.REACHABLE);
-        })
+        else if (this.selectedAction == Actions.SELECT_TILE && this.selectedTile.unit) {
+          this.selectedTile.setTileStatus(TileStatus.SELECTED);
+          const reachables = this.currentMap.pathfinding.getReachables(this.selectedTile, MOVEMENT, 2);
+          reachables.forEach((reachable) => {
+            reachable.setTileStatus(TileStatus.REACHABLE);
+          })
+          this.selectedAction = Actions.MOVE_UNIT;
+        }
       }
     }
   }

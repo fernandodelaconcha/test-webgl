@@ -1,6 +1,7 @@
 import { Raycaster, Vector2 } from "three";
-import Tile from "./classes/Tile";
-import { Game } from "./classes/Game";
+import Tile from "../classes/Tile";
+import { Game } from "../classes/Game";
+import { MapShape } from "./Enums";
 
 
 export function getTileFromRaycast(event: MouseEvent, game: Game) {
@@ -43,4 +44,19 @@ export function getRandomIntInRange(min: number, max: number): number {
   min = Math.ceil(min);
   max = Math.floor(max);
   return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+export function tileToPosition(tileX: number, tileY: number, shape: MapShape, size: number): Vector2 {
+  let col: number;
+  let row: number;
+  if (shape == MapShape.CIRCLE) {
+    col = tileX + (tileY & 1) / 2
+    row = tileY
+  } else {
+    let x = tileX - size / 2
+    let y = tileY - size / 2
+    col = x + (y & 1) / 2
+    row = y
+  }
+  return new Vector2(col * 1.77, row * 1.535);
 }
