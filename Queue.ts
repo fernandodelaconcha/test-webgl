@@ -82,10 +82,10 @@ export class PriorityQueue<T> {
   }
 }
 export class priorityTile {
-    tile:Tile;
-    priority: number;
-    constructor(tile: Tile, priority: number){
-        this.tile = tile;
-        this.priority = priority;
-    }
+  tile: Tile;
+  priority: number;
+  constructor(tile: Tile, priority: number) {
+    this.tile = tile;
+    this.priority = priority;
+  }
 }

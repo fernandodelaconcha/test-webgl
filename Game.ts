@@ -1,6 +1,7 @@
 import { ACESFilmicToneMapping, Color, DirectionalLight, PerspectiveCamera, Scene, WebGLRenderer } from "three";
 import Tile from "./Tile";
 import { TileStatus } from "./Enums";
+import { Mesh } from "three";
 
 export class Game {
 
@@ -68,46 +69,46 @@ export class Game {
     }
   }
   render(): void {
-  this.renderer.render(this.scene, this.camera);
-  this.scene.children.forEach(object => {
-    if (object.userData instanceof Tile) {
-      switch (object.userData.status) {
-        case TileStatus.FOV:
-          object.material.color.set( 0x000000 );
-          break;
-        case TileStatus.TARGET:
-          object.material.color.set( 0x0000ff );
-          break;  
-        case TileStatus.PATH:
-          object.material.color.set( 0xC5E223 );
-          break;
-        case TileStatus.REACHABLE:
-          object.material.color.set( 0x03adfc );
-          break;
-        case TileStatus.SELECTED:
-          object.material.color.set( 0xff0000 );
-          break;
-        case TileStatus.HOVERED:
-          object.material.color.set( 0xffff00 );
-          break;
-        default:
-          object.material.color.set("white");
-          break;
+    this.renderer.render(this.scene, this.camera);
+    this.scene.children.forEach((object) => {
+      if (object instanceof Mesh && object.userData instanceof Tile) {
+        switch (object.userData.status) {
+          case TileStatus.FOV:
+            object.material.color.set(0x000000);
+            break;
+          case TileStatus.TARGET:
+            object.material.color.set(0x0000ff);
+            break;
+          case TileStatus.PATH:
+            object.material.color.set(0xC5E223);
+            break;
+          case TileStatus.REACHABLE:
+            object.material.color.set(0x03adfc);
+            break;
+          case TileStatus.SELECTED:
+            object.material.color.set(0xff0000);
+            break;
+          case TileStatus.HOVERED:
+            object.material.color.set(0xffff00);
+            break;
+          default:
+            object.material.color.set("white");
+            break;
+        }
       }
-    }
-  });
+    });
   }
-  cleanScene(): void{
-    let objects = this.scene.getObjectsByProperty('name','Tile');
-    objects = objects.concat(this.scene.getObjectsByProperty('name','Cloud'));
-    objects = objects.concat(this.scene.getObjectsByProperty('name','Tree'));
-    objects = objects.concat(this.scene.getObjectsByProperty('name','Stone'));
-    objects = objects.concat(this.scene.getObjectsByProperty('name','Container'));
+  cleanScene(): void {
+    let objects = this.scene.getObjectsByProperty('name', 'Tile');
+    objects = objects.concat(this.scene.getObjectsByProperty('name', 'Cloud'));
+    objects = objects.concat(this.scene.getObjectsByProperty('name', 'Tree'));
+    objects = objects.concat(this.scene.getObjectsByProperty('name', 'Stone'));
+    objects = objects.concat(this.scene.getObjectsByProperty('name', 'Container'));
     for (let i = 0; i < objects.length; i++) {
       this.scene.remove(objects[i]);
     }
   }
-  quitGame(): void{
+  quitGame(): void {
     this.cleanScene();
     this.renderer.render(this.scene, this.camera);
     this.isGameOver = true;

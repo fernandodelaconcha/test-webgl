@@ -28,12 +28,12 @@ export default class WorldMap {
             return tile
         };
 
-        return new Tile(new Vector2(999,999), -99);
+        return new Tile(new Vector2(999, 999), -99);
     }
-    applyStatusToTiles(oldStatus: TileStatus.REACHABLE, newStatus: TileStatus): void {
+    applyStatusToTiles(oldStatus: TileStatus, newStatus: TileStatus): void {
         this.tiles.forEach((element) => {
-          if (element.status == oldStatus)
-            element.setTileStatus(newStatus, true);
+            if (element.status == oldStatus)
+                element.setTileStatus(newStatus, true);
         })
     }
     clearStatusFromAllTiles() {

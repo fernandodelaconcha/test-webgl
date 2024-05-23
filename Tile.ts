@@ -7,7 +7,7 @@ export default class Tile {
     texture: TextureType;
     hasObstacle: boolean;
     status: TileStatus;
-    constructor (index: Vector2, height: number){
+    constructor(index: Vector2, height: number) {
         this.index = index;
         this.height = Math.round(height);
         this.hasObstacle = false;

@@ -12,13 +12,13 @@ export class Pathfinding {
         let neighbors: Array<Tile> = [];
         if (target.index.y % 2 == 0) {
             this.tiles.forEach(tile => {
-                if (isNeighborForEvenTile(tile, target) &&!tile.hasObstacle && Math.abs(tile.height - target.height) < heightDifference){
+                if (isNeighborForEvenTile(tile, target) && !tile.hasObstacle && Math.abs(tile.height - target.height) < heightDifference) {
                     neighbors.push(tile);
                 }
             });
         } else {
             this.tiles.forEach(tile => {
-                if (isNeighborForOddTile(tile, target) && !tile.hasObstacle && Math.abs(tile.height - target.height) < heightDifference){
+                if (isNeighborForOddTile(tile, target) && !tile.hasObstacle && Math.abs(tile.height - target.height) < heightDifference) {
                     neighbors.push(tile);
                 }
             });
@@ -42,9 +42,9 @@ export class Pathfinding {
         }
     }
     convertToAxial(index: Vector2) {
-        const q: number= index.x - (index.y - (index.y&1)) / 2;
+        const q: number = index.x - (index.y - (index.y & 1)) / 2;
         const r: number = index.y;
-    
+
         return new Vector2(q, r)
     }
     getCostBetweenTwoTiles(start: Tile, target: Tile): number {
@@ -56,22 +56,22 @@ export class Pathfinding {
 
         return Math.floor((dx + dy + dz) / 2)
     }
-    discoverPath(start: Tile, goal: Tile, heightDifference: number): Map<Tile, Tile|null> {
+    discoverPath(start: Tile, goal: Tile, heightDifference: number): Map<Tile, Tile | null> {
         const numberComparator: Comparator<any> = (A: priorityTile, B: priorityTile) => {
-            return  B.priority - A.priority;
-          };
+            return B.priority - A.priority;
+        };
         let frontier = new PriorityQueue(numberComparator);
         frontier.add(new priorityTile(start, 0));
-        const cameFrom: Map<Tile, Tile|null> = new Map();
+        const cameFrom: Map<Tile, Tile | null> = new Map();
         const costSoFar: Map<Tile, number> = new Map();
         cameFrom.set(start, null);
         costSoFar.set(start, 0);
 
-        while(frontier.size > 0){
+        while (frontier.size > 0) {
             const current: Tile = frontier.poll().tile;
             if (current == goal)
                 break;
-            
+
             this.getTileNeighbors(current, heightDifference).forEach((next) => {
                 const oldCost: number = (costSoFar.get(current) || 0);
                 const newCost = oldCost + this.getCostBetweenTwoTiles(current, next);
@@ -79,12 +79,12 @@ export class Pathfinding {
                     costSoFar.set(next, newCost);
                     const priority = newCost + this.getCostBetweenTwoTiles(goal, next);
                     frontier.add(new priorityTile(next, priority));
-                    cameFrom.set(next,current);
+                    cameFrom.set(next, current);
                 }
             })
         }
         return cameFrom;
-        
+
     }
     findPath(start: Tile, goal: Tile, heightDifference: number): Array<Tile> {
         const cameFrom: Map<Tile, Tile | null> = this.discoverPath(start, goal, heightDifference)

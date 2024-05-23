@@ -22,12 +22,12 @@ export function tileToPosition(tileX: number, tileY: number, shape: MapShape, si
   let col: number;
   let row: number;
   if (shape == MapShape.CIRCLE) {
-    col = tileX + (tileY&1) / 2
+    col = tileX + (tileY & 1) / 2
     row = tileY
   } else {
     let x = tileX - size / 2
     let y = tileY - size / 2
-    col = x + (y&1) / 2
+    col = x + (y & 1) / 2
     row = y
   }
   return new Vector2(col * 1.77, row * 1.535);
@@ -44,7 +44,7 @@ export default class MapGenerator {
     const noise2D = createNoise2D(Alea(seed));
     const map = new WorldMap(size, seaLevel, maxHeight);
     const tiles: Array<Tile> = [];
-    const start = (shape == MapShape.CIRCLE ? 1-size : 0);
+    const start = (shape == MapShape.CIRCLE ? 1 - size : 0);
     for (let i = start; i < size; i++) {
       for (let j = start; j < size; j++) {
         let position = tileToPosition(i, j, shape, size);
@@ -71,7 +71,7 @@ export default class MapGenerator {
     this.createContainer(shape, size, seaLevel);
     this.createFloor(shape, size, seaLevel);
     this.createClouds(Math.floor(Math.pow(Math.random(), .45) * size / 3), size);
-    
+
     return map;
   }
   createTile(tile: Tile, material: MeshPhysicalMaterial, position: Vector2): Mesh {
@@ -137,7 +137,7 @@ export default class MapGenerator {
       geo = new BoxGeometry(size * 2, Math.max(seaLevel + 1, 2.8), size * 2 - 4);
       geo.translate(-.5, -1, -.5)
     }
-    if (seaLevel == 0) geo.translate(0,1,0)
+    if (seaLevel == 0) geo.translate(0, 1, 0)
     let mapContainer = new Mesh(
       geo,
       new MeshPhysicalMaterial({
@@ -152,13 +152,13 @@ export default class MapGenerator {
     this.scene.add(mapContainer);
   }
   createFloor(shape: MapShape, size: number, seaLevel: number): void {
-    let geo: BufferGeometry; 
+    let geo: BufferGeometry;
     if (shape == MapShape.CIRCLE) {
       geo = new CylinderGeometry(size + 1, size + 1, 1, 50);
-      geo.translate(0, -(seaLevel + 2 - seaLevel/2), 0)
+      geo.translate(0, -(seaLevel + 2 - seaLevel / 2), 0)
     } else {
       geo = new BoxGeometry(size * 2 - 1, 1, size * 2 - 5);
-      geo.translate(-.5, -(seaLevel + 2 - seaLevel/2), -.5)
+      geo.translate(-.5, -(seaLevel + 2 - seaLevel / 2), -.5)
     }
     let mapFloor = new Mesh(
       geo,
@@ -199,7 +199,7 @@ export default class MapGenerator {
   createStone(height: number, position: Vector2, count: number): void {
     let geos: Array<SphereGeometry> = [];
     for (let i = 0; i < count; i++) {
-      const geo1 = new SphereGeometry(Math.random() * .4 + .3, 7, 7, 0,  Math.PI*2, 0, Math.PI / 2);
+      const geo1 = new SphereGeometry(Math.random() * .4 + .3, 7, 7, 0, Math.PI * 2, 0, Math.PI / 2);
       const displacementX = Math.random() * .5 * (Math.round(Math.random()) ? 1 : -1);
       const displacementY = Math.random() * .5 * (Math.round(Math.random()) ? 1 : -1);
       geo1.translate(position.x + displacementX, height, position.y + displacementY);
@@ -224,11 +224,11 @@ export default class MapGenerator {
       const puff1 = new SphereGeometry(1.2, 7, 7);
       const puff2 = new SphereGeometry(1.5, 7, 7);
       const puff3 = new SphereGeometry(.9, 7, 7);
-  
+
       puff1.translate(-1.85, Math.random() * .3, 0);
       puff2.translate(0, Math.random() * .3, 0);
       puff3.translate(1.85, Math.random() * .3, 0);
-  
+
       const cloudGeo = BufferGeometryUtils.mergeGeometries([puff1, puff2, puff3]);
       cloudGeo.translate(
         Math.random() * mapSize - 10,
@@ -238,7 +238,7 @@ export default class MapGenerator {
       cloudGeo.rotateY(Math.random() * Math.PI * 2);
       geo = BufferGeometryUtils.mergeGeometries([geo, cloudGeo]) as SphereGeometry;
     }
-  
+
     const mesh = new Mesh(
       geo,
       new MeshStandardMaterial({
@@ -260,7 +260,7 @@ export default class MapGenerator {
       return TextureType.GRASS_TEXTURE;
     } else if (height > SAND_CONSTANT * maxHeight) {
       return TextureType.SAND_TEXTURE;
-    } else 
+    } else
       return TextureType.DIRT2_TEXTURE;
   }
   getTextureFromTextureType(textureType: TextureType): Texture {
@@ -281,7 +281,7 @@ export default class MapGenerator {
   }
   createObstacle(textureType: TextureType, tile: Tile, height: number, position: Vector2): void {
     if (Math.random() > 0.8) {
-      switch(textureType){
+      switch (textureType) {
         case (TextureType.SAND_TEXTURE):
         case (TextureType.STONE_TEXTURE):
           this.createStone(Math.round(height), position, Math.floor(Math.pow(Math.random(), .45) * 3 + 1));
