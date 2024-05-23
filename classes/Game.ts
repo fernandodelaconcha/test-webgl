@@ -1,6 +1,6 @@
 import { ACESFilmicToneMapping, Color, DirectionalLight, PerspectiveCamera, Scene, WebGLRenderer } from "three";
 import Tile from "./Tile";
-import { TileStatus } from "./Enums";
+import { TileStatus } from "../Enums";
 import { Mesh } from "three";
 
 export class Game {

@@ -2,10 +2,10 @@ import './style.css';
 import * as THREE from 'three';
 import { RGBELoader } from 'three/examples/jsm/Addons.js';
 import { PMREMGenerator } from 'three/src/extras/PMREMGenerator.js';
-import MapGenerator from './MapGenerator';
+import MapGenerator from './classes/MapGenerator';
 import { MapShape } from './Enums';
-import { Game } from './Game';
-import { Controls } from './Controls';
+import { Game } from './classes/Game';
+import { Controls } from './classes/Controls';
 import { getRandomIntInRange } from "./Utils";
 
 const FPS = 30;
@@ -20,19 +20,22 @@ let envmapTexture = await new RGBELoader().setDataType(THREE.FloatType).loadAsyn
 const envmap = pmrem.fromEquirectangular(envmapTexture).texture
 const mapGenerator = new MapGenerator(envmap, game.scene);
 //plateau
-//currentMap = mapGenerator.createMap(MapShape.BOX, 20, 5, 10 ,10);
+//let currentMap = mapGenerator.createMap(MapShape.BOX, 20, 5, 10 ,10);
 
 //circle hills no water
-//currentMap = mapGenerator.createMap(MapShape.CIRCLE, 16, 2, 10 , 3);
+//let currentMap = mapGenerator.createMap(MapShape.CIRCLE, 16, 2, 10 , 3);
 
 // circle islands
-//currentMap = mapGenerator.createMap(MapShape.CIRCLE, 16, 4, 10 , 2);
+//let currentMap = mapGenerator.createMap(MapShape.CIRCLE, 16, 4, 10 , 2);
 
 // all water floating rocks
-//currentMap = mapGenerator.createMap(MapShape.CIRCLE, 29, 5, 6, 2);
+//let currentMap = mapGenerator.createMap(MapShape.CIRCLE, 30, 5, 6, 2);
 
-//currentMap = mapGenerator.createMap(MapShape.CIRCLE);
-let currentMap = mapGenerator.createMap(MapShape.BOX);
+//kind of swamp
+let currentMap = mapGenerator.createMap(MapShape.BOX, 28, 3, 5, 3);
+
+//let currentMap = mapGenerator.createMap(MapShape.CIRCLE);
+//let currentMap = mapGenerator.createMap(MapShape.BOX);
 controls.setMap(currentMap);
 
 //game loop

@@ -2,8 +2,8 @@ import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { Game } from "./Game";
 import { MOUSE } from "three";
 import Tile from "./Tile";
-import { TileStatus } from "./Enums";
-import { getRandomIntInRange, getTileFromRaycast } from "./Utils";
+import { TileStatus } from "../Enums";
+import { getRandomIntInRange, getTileFromRaycast } from "../Utils";
 import WorldMap from "./WorldMap";
 import anime from 'animejs';
 

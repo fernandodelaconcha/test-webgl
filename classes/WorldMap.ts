@@ -1,6 +1,6 @@
 import { Vector2 } from "three";
 import Tile from "./Tile";
-import { TileStatus } from "./Enums";
+import { TileStatus } from "../Enums";
 import { Pathfinding } from "./Pathfinding";
 
 

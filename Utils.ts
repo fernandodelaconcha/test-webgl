@@ -1,6 +1,6 @@
 import { Raycaster, Vector2 } from "three";
-import Tile from "./Tile";
-import { Game } from "./Game";
+import Tile from "./classes/Tile";
+import { Game } from "./classes/Game";
 
 
 export function getTileFromRaycast(event: MouseEvent, game: Game) {

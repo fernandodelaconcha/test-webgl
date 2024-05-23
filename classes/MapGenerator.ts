@@ -4,7 +4,7 @@ import WorldMap from './WorldMap';
 import { Vector2, CylinderGeometry, Color, SphereGeometry, Mesh, MeshPhysicalMaterial, Scene, DoubleSide, TextureLoader, MeshStandardMaterial, MeshBasicMaterial, Texture, BoxGeometry, BufferGeometry } from 'three';
 import { BufferGeometryUtils } from 'three/examples/jsm/Addons.js';
 import Alea from 'alea';
-import { MapShape, TextureType } from './Enums';
+import { MapShape, TextureType } from '../Enums';
 
 const STONE_CONSTANT = .8;
 const DIRT_CONSTANT = .7;
@@ -103,10 +103,10 @@ export default class MapGenerator {
     let geo: BufferGeometry;
     if (shape == MapShape.CIRCLE) {
       geo = new CylinderGeometry(size + 1, size + 1, seaLevel - .1, 50);
-      geo.translate(0, 0, 0)
+      geo.translate(0, -.5, 0)
     } else {
       geo = new BoxGeometry(size * 2 - 2, seaLevel - .1, size * 2 - 6);
-      geo.translate(-.5, 0, -.5)
+      geo.translate(-.5, -.5, -.5)
     }
     let seaMesh: Mesh = new Mesh(
       geo,
@@ -132,10 +132,10 @@ export default class MapGenerator {
     let geo: BufferGeometry;
     if (shape == MapShape.CIRCLE) {
       geo = new CylinderGeometry(size + 1.1, size + 1.1, Math.max(seaLevel + 1, 2.8), 50);
-      geo.translate(0, -1, 0)
+      geo.translate(0, -1.5, 0)
     } else {
       geo = new BoxGeometry(size * 2, Math.max(seaLevel + 1, 2.8), size * 2 - 4);
-      geo.translate(-.5, -1, -.5)
+      geo.translate(-.5, -1.5, -.5)
     }
     if (seaLevel == 0) geo.translate(0, 1, 0)
     let mapContainer = new Mesh(
@@ -155,10 +155,10 @@ export default class MapGenerator {
     let geo: BufferGeometry;
     if (shape == MapShape.CIRCLE) {
       geo = new CylinderGeometry(size + 1, size + 1, 1, 50);
-      geo.translate(0, -(seaLevel + 2 - seaLevel / 2), 0)
+      geo.translate(0, -(seaLevel + 2.5 - seaLevel / 2), 0)
     } else {
       geo = new BoxGeometry(size * 2 - 1, 1, size * 2 - 5);
-      geo.translate(-.5, -(seaLevel + 2 - seaLevel / 2), -.5)
+      geo.translate(-.5, -(seaLevel + 2.5 - seaLevel / 2), -.5)
     }
     let mapFloor = new Mesh(
       geo,

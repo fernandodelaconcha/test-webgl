@@ -1,5 +1,5 @@
 import { Vector2 } from "three";
-import { TextureType, TileStatus } from "./Enums";
+import { TextureType, TileStatus } from "../Enums";
 
 export default class Tile {
     index: Vector2;
