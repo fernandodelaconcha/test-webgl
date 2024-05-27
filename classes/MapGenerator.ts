@@ -63,13 +63,13 @@ export default class MapGenerator {
   }
   createTile(tile: Tile, material: MeshPhysicalMaterial, position: Vector2): Mesh {
     let geo = new CylinderGeometry(1, 1, tile.height, 6, 1, false);
-    geo.translate(position.x, tile.height * 0.5, position.y);
 
     let mesh = new Mesh(geo, material as unknown as MeshBasicMaterial);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     mesh.name = 'Tile';
     mesh.userData = tile;
+    mesh['position'].set(position.x, tile.height * 0.5, position.y);
     tile.id = mesh.uuid;
 
     return mesh;
@@ -295,12 +295,12 @@ export default class MapGenerator {
     tile.unit = new Unit('caca', 30);
     tile.hasObstacle = true;
     let geo = new SphereGeometry(.5);
-    geo.translate(position.x, height + .5, position.y)
 
     let mesh = new Mesh(geo, new MeshBasicMaterial({ color }));
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     mesh.name = 'Tile';
+    mesh['position'].set(position.x, height + .5, position.y);
     tile.unit.id = mesh.uuid;
     this.scene.add(mesh);
   }

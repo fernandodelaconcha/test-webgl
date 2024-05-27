@@ -70,10 +70,10 @@ export class Game {
       moonLight: moonLight
     }
   }
-  render(): void {
-    this.scene.getObjectsByProperty('name', 'Unit').forEach(e => this.scene.remove(e));
+  render(delta: number): void {
     this.scene.children.forEach((object) => {
-      if (object instanceof Mesh && object.userData instanceof Tile) {
+      if (!(object instanceof Mesh)) return;
+      if (object.userData instanceof Tile) {
         switch (object.userData.status) {
           case TileStatus.FOV:
             object.material.color.set(0x000000);
@@ -97,21 +97,34 @@ export class Game {
             object.material.color.set("white");
             break;
         }
+      } else if (object.userData.path) {
+        object.userData.start.lerp(object.userData.path, object.userData.alpha)
+        object.translateX(object.userData.start.x / 6);
+        object.translateY(object.userData.start.y / 6);
+        object.translateZ(object.userData.start.z / 6);
+
+        if (object.userData.alpha < 1) {
+          object.userData.alpha += delta / 100
+        } else {
+          object.translateX(object.userData.start.x - object.userData.path.x);
+          object.translateY(object.userData.start.y - object.userData.path.y);
+          object.translateZ(object.userData.start.z - object.userData.path.z);
+          object.userData = {}
+        }
       }
     });
     this.renderer.render(this.scene, this.camera);
   }
-  moveUnitMeshToTile(originTile: Tile, targetTile: Tile, mapShape: MapShape, size: number) {
-    if (!(originTile.unit instanceof Unit)) return;
-    const unitMesh = this.scene.getObjectByProperty('uuid', originTile.unit.id as string) as Mesh;
-    const originPosition = tileToPosition(originTile.index.x, originTile.index.y, mapShape, size);
-    const targetPosition = tileToPosition(targetTile.index.x, targetTile.index.y, mapShape, size);
+  moveUnitMeshToTile(originTileMesh: Mesh, targetTileMesh: Mesh) {
+    const unitMesh = this.scene.getObjectByProperty('uuid', originTileMesh.userData.unit.id as string) as Mesh;
+    const originIndex: Vector3 = new Vector3(originTileMesh['position'].x, originTileMesh['position'].y * 2, originTileMesh['position'].z);
+    const targetIndex: Vector3 = new Vector3(targetTileMesh['position'].x, targetTileMesh['position'].y * 2, targetTileMesh['position'].z);
 
-    const heightDifference = 
-    unitMesh.translateX(targetPosition.x - originPosition.x);
-    unitMesh.translateY(targetTile.height - originTile.height);
-    unitMesh.translateZ(targetPosition.y - originPosition.y);
-    this.render()
+    unitMesh.userData = {
+      path: targetIndex.sub(originIndex),
+      start: new Vector3(),
+      alpha: 0
+    }
   }
   cleanScene(): void {
     let objects = this.scene.getObjectsByProperty('name', 'Tile');

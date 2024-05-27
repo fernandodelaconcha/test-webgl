@@ -1,9 +1,9 @@
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { Game } from "./Game";
-import { MOUSE } from "three";
+import { MOUSE, Mesh } from "three";
 import Tile from "./Tile";
 import { Actions, TileStatus } from "../utils/Enums";
-import { getRandomIntInRange, getTileFromRaycast } from "../utils/Utils";
+import { getRandomIntInRange, getMeshFromRaycast } from "../utils/Utils";
 import WorldMap from "./WorldMap";
 import anime from 'animejs';
 
@@ -15,8 +15,9 @@ export class Controls {
   game: Game;
   orbitControls: OrbitControls;
   currentMap: WorldMap;
-  selectedTile: Tile;
+  selectedTile: Mesh;
   selectedAction: Actions = Actions.SELECT_TILE;
+  currentPath: Array<Tile>
   constructor(game: Game) {
     this.game = game;
     this.orbitControls = new OrbitControls(game.camera, game.renderer.domElement);
@@ -45,42 +46,47 @@ export class Controls {
         }
       }
     })
-    let hovered = getTileFromRaycast(event, this.game);
-    if (!hovered || (hovered.hasObstacle && !hovered.unit)) return;
+    const hoveredMesh = getMeshFromRaycast(event, this.game);
+    let hovered = hoveredMesh?.userData as Tile
+    if (!(hovered instanceof Tile) || (hovered.hasObstacle && !hovered.unit)) return;
     if (hovered.status == TileStatus.REACHABLE || hovered.status == TileStatus.PATH) {
       this.currentMap.applyStatusToTiles(TileStatus.PATH, TileStatus.REACHABLE);
       hovered.setTileStatus(TileStatus.TARGET);
-      const path = this.currentMap.pathfinding.findPath(this.selectedTile, hovered, 2)
-      path.forEach(element => {
+      this.currentPath = this.currentMap.pathfinding.findPath(this.selectedTile.userData as Tile, hovered, 2)
+      this.currentPath.forEach(element => {
         element.setTileStatus(TileStatus.PATH)
       });
     } else {
       hovered.setTileStatus(TileStatus.HOVERED);
+      this.currentPath = [];
+      this.currentMap.applyStatusToTiles(TileStatus.PATH, TileStatus.REACHABLE)
     }
   }
   handleMouseDown(event: MouseEvent): void {
     if (event.which == 1) {
       const originTile = this.selectedTile;
-      this.selectedTile = getTileFromRaycast(event, this.game) as Tile;
-      if (originTile instanceof Tile) {
-        originTile.setTileStatus(TileStatus.NORMAL, true);
+      this.selectedTile = getMeshFromRaycast(event, this.game) as Mesh;
+      if (originTile && originTile.userData instanceof Tile) {
+        originTile.userData.setTileStatus(TileStatus.NORMAL, true);
         this.currentMap.applyStatusToTiles(TileStatus.REACHABLE, TileStatus.NORMAL);
       };
-      if (this.selectedTile instanceof Tile) {
-        if (this.selectedAction == Actions.MOVE_UNIT && this.selectedTile.status == TileStatus.TARGET) {
-          this.game.moveUnitMeshToTile(originTile, this.selectedTile, this.currentMap.shape, this.currentMap.size);
-          this.currentMap.moveUnitToTile(originTile, this.selectedTile);
+      if (this.selectedTile.userData instanceof Tile) {
+        if (this.selectedAction == Actions.MOVE_UNIT && this.selectedTile.userData.status == TileStatus.TARGET) {
+          this.game.moveUnitMeshToTile(originTile, this.selectedTile);
+          this.currentMap.moveUnitToTile(originTile.userData as Tile, this.selectedTile.userData);
           this.currentMap.clearStatusFromAllTiles();
           this.selectedAction = Actions.SELECT_TILE;
           return;
         }
-        else if (this.selectedAction == Actions.SELECT_TILE && this.selectedTile.unit) {
-          this.selectedTile.setTileStatus(TileStatus.SELECTED);
-          const reachables = this.currentMap.pathfinding.getReachables(this.selectedTile, MOVEMENT, 2);
+        else if (this.selectedAction == Actions.SELECT_TILE && this.selectedTile.userData.unit) {
+          this.selectedTile.userData.setTileStatus(TileStatus.SELECTED);
+          const reachables = this.currentMap.pathfinding.getReachables(this.selectedTile.userData, MOVEMENT, 2);
           reachables.forEach((reachable) => {
             reachable.setTileStatus(TileStatus.REACHABLE);
           })
           this.selectedAction = Actions.MOVE_UNIT;
+        } else {
+          this.selectedAction = Actions.SELECT_TILE;
         }
       }
     }

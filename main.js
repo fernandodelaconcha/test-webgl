@@ -47,7 +47,7 @@ function gameLoop(timeStamp = 0) {
   if (timer > INTERVAL) {
     timer = 0;
     controls.update();
-    game.render();
+    game.render(delta);
   }
   timer += delta;
   if (game.isGameOver) {
@@ -70,13 +70,13 @@ function onMouseDown(e) {
 }
 function onKeyDown(e) {
   const shouldResetWorld = controls.handleKeyDown(e)
-  if (shouldResetWorld){
+  if (shouldResetWorld) {
     let size = getRandomIntInRange(16, 30)
     let seaLevel = getRandomIntInRange(0, 5)
     let maxHeight = getRandomIntInRange(5, 10)
     let minHeight = getRandomIntInRange(0, 5);
-    console.log ({size,seaLevel, maxHeight, minHeight})
-    currentMap = mapGenerator.createMap(getRandomIntInRange(0, 1),size, seaLevel, maxHeight, minHeight);
+    console.log({ size, seaLevel, maxHeight, minHeight })
+    currentMap = mapGenerator.createMap(getRandomIntInRange(0, 1), size, seaLevel, maxHeight, minHeight);
     controls.setMap(currentMap);
   };
 }

@@ -1,10 +1,10 @@
-import { Raycaster, Vector2 } from "three";
+import { Mesh, Raycaster, Vector2 } from "three";
 import Tile from "../classes/Tile";
 import { Game } from "../classes/Game";
 import { MapShape } from "./Enums";
 
 
-export function getTileFromRaycast(event: MouseEvent, game: Game) {
+export function getMeshFromRaycast(event: MouseEvent, game: Game) {
   const canvas = game.renderer.domElement;
   const raycaster = new Raycaster();
   const pointer = new Vector2(0, 0);
@@ -14,8 +14,8 @@ export function getTileFromRaycast(event: MouseEvent, game: Game) {
   raycaster.setFromCamera(pointer, game.camera);
   const intersects = raycaster.intersectObjects(game.scene.children);
   if (intersects.length > 0 && intersects[0].object && intersects[0].object.name == "Tile") {
-    let mesh = intersects[0].object.userData;
-    if (mesh instanceof Tile) {
+    let mesh = intersects[0].object;
+    if (mesh instanceof Mesh) {
       return mesh;
     }
   }
