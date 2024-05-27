@@ -1,4 +1,4 @@
-import Tile from "./Tile";
+import Tile from "../classes/Tile";
 
 export type Comparator<T> = (valueA: T, valueB: T) => number;
 

@@ -285,10 +285,10 @@ export default class MapGenerator {
     }
     //spawning random units on map
     else if (random < .05) {
-      this.createUnit(tile, position, height, 'blue')
+      this.createUnit(tile, position, height, 'blue');
     }
     else if (random < .1) {
-      this.createUnit(tile, position, height, 'red')
+      this.createUnit(tile, position, height, 'red');
     }
   }
   createUnit(tile: Tile, position: Vector2, height: number, color: string): void {
@@ -301,6 +301,9 @@ export default class MapGenerator {
     mesh.receiveShadow = true;
     mesh.name = 'Tile';
     mesh['position'].set(position.x, height + .5, position.y);
+    mesh.userData = {
+      pendingMovements: []
+    }
     tile.unit.id = mesh.uuid;
     this.scene.add(mesh);
   }

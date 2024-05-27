@@ -1,6 +1,6 @@
 import { Vector2 } from "three";
 import Tile from "./Tile";
-import { Comparator, PriorityQueue, priorityTile } from "./Queue";
+import { Comparator, PriorityQueue, priorityTile } from "../utils/Queue";
 import { isNeighborForEvenTile, isNeighborForOddTile } from "../utils/Utils";
 
 export class Pathfinding {
@@ -97,6 +97,7 @@ export class Pathfinding {
             path.push(current);
             current = cameFrom.get(current) as Tile;
         }
-        return path;
+        path.push(start);
+        return path.reverse();
     }
 }

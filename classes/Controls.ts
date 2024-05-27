@@ -3,7 +3,7 @@ import { Game } from "./Game";
 import { MOUSE, Mesh } from "three";
 import Tile from "./Tile";
 import { Actions, TileStatus } from "../utils/Enums";
-import { getRandomIntInRange, getMeshFromRaycast } from "../utils/Utils";
+import { getRandomIntInRange, getTileFromRaycast } from "../utils/Utils";
 import WorldMap from "./WorldMap";
 import anime from 'animejs';
 
@@ -15,7 +15,7 @@ export class Controls {
   game: Game;
   orbitControls: OrbitControls;
   currentMap: WorldMap;
-  selectedTile: Mesh;
+  selectedTile: Tile;
   selectedAction: Actions = Actions.SELECT_TILE;
   currentPath: Array<Tile>
   constructor(game: Game) {
@@ -46,13 +46,13 @@ export class Controls {
         }
       }
     })
-    const hoveredMesh = getMeshFromRaycast(event, this.game);
-    let hovered = hoveredMesh?.userData as Tile
+    const hoveredMesh = getTileFromRaycast(event, this.game);
+    let hovered = hoveredMesh as Tile
     if (!(hovered instanceof Tile) || (hovered.hasObstacle && !hovered.unit)) return;
     if (hovered.status == TileStatus.REACHABLE || hovered.status == TileStatus.PATH) {
       this.currentMap.applyStatusToTiles(TileStatus.PATH, TileStatus.REACHABLE);
       hovered.setTileStatus(TileStatus.TARGET);
-      this.currentPath = this.currentMap.pathfinding.findPath(this.selectedTile.userData as Tile, hovered, 2)
+      this.currentPath = this.currentMap.pathfinding.findPath(this.selectedTile, hovered, 2)
       this.currentPath.forEach(element => {
         element.setTileStatus(TileStatus.PATH)
       });
@@ -65,22 +65,22 @@ export class Controls {
   handleMouseDown(event: MouseEvent): void {
     if (event.which == 1) {
       const originTile = this.selectedTile;
-      this.selectedTile = getMeshFromRaycast(event, this.game) as Mesh;
-      if (originTile && originTile.userData instanceof Tile) {
-        originTile.userData.setTileStatus(TileStatus.NORMAL, true);
+      this.selectedTile = getTileFromRaycast(event, this.game);
+      if (originTile && originTile instanceof Tile) {
+        originTile.setTileStatus(TileStatus.NORMAL, true);
         this.currentMap.applyStatusToTiles(TileStatus.REACHABLE, TileStatus.NORMAL);
       };
-      if (this.selectedTile.userData instanceof Tile) {
-        if (this.selectedAction == Actions.MOVE_UNIT && this.selectedTile.userData.status == TileStatus.TARGET) {
-          this.game.moveUnitMeshToTile(originTile, this.selectedTile);
-          this.currentMap.moveUnitToTile(originTile.userData as Tile, this.selectedTile.userData);
+      if (this.selectedTile instanceof Tile) {
+        if (this.selectedAction == Actions.MOVE_UNIT && this.selectedTile.status == TileStatus.TARGET) {
+          this.game.moveUnitMeshToTile(this.currentPath);
+          this.currentMap.moveUnitToTile(originTile, this.selectedTile);
           this.currentMap.clearStatusFromAllTiles();
           this.selectedAction = Actions.SELECT_TILE;
           return;
         }
-        else if (this.selectedAction == Actions.SELECT_TILE && this.selectedTile.userData.unit) {
-          this.selectedTile.userData.setTileStatus(TileStatus.SELECTED);
-          const reachables = this.currentMap.pathfinding.getReachables(this.selectedTile.userData, MOVEMENT, 2);
+        else if (this.selectedAction == Actions.SELECT_TILE && this.selectedTile.unit) {
+          this.selectedTile.setTileStatus(TileStatus.SELECTED);
+          const reachables = this.currentMap.pathfinding.getReachables(this.selectedTile, MOVEMENT, 2);
           reachables.forEach((reachable) => {
             reachable.setTileStatus(TileStatus.REACHABLE);
           })
@@ -125,11 +125,11 @@ export class Controls {
             daytime = !daytime;
           },
           update: () => {
-            this.game.lights.sunLight.intensity = 3.5 * (1 - obj.t);
-            this.game.lights.moonLight.intensity = 3.5 * obj.t;
+            this.game.sunLight.intensity = 3.5 * (1 - obj.t);
+            this.game.moonLight.intensity = 3.5 * obj.t;
 
-            this.game.lights.sunLight.translateY(20 * (1 - obj.t));
-            this.game.lights.moonLight.translateY(20 * obj.t);
+            this.game.sunLight.translateY(20 * (1 - obj.t));
+            this.game.moonLight.translateY(20 * obj.t);
 
             sunBackground.style.opacity = Number(1 - obj.t).toString();
             moonBackground.style.opacity = Number(obj.t).toString();

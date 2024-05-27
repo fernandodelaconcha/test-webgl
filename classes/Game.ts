@@ -1,19 +1,17 @@
 import { ACESFilmicToneMapping, Color, DirectionalLight, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
 import Tile from "./Tile";
-import { MapShape, TileStatus } from "../utils/Enums";
+import { TileStatus } from "../utils/Enums";
 import { Mesh } from "three";
-import { tileToPosition } from "../utils/Utils";
 import { Unit } from "./Unit";
+import { pendingMovement } from "../utils/Utils";
 
 export class Game {
 
   scene: Scene
   camera: PerspectiveCamera
   renderer: WebGLRenderer
-  lights: {
-    sunLight: DirectionalLight
-    moonLight: DirectionalLight
-  }
+  sunLight: DirectionalLight
+  moonLight: DirectionalLight
   isGameOver: boolean
 
   constructor(canvas: HTMLElement, innerWidth: number, innerHeight: number, near: number = .1, far: number = 1000) {
@@ -27,104 +25,110 @@ export class Game {
       alpha: true
     });
     this.setRendererOptions(innerWidth, innerHeight);
-    this.addLights();
+    this.sunLight = this.addLight("#FFCB8E", 3.5, new Vector3(10, 20, 10));
+    this.moonLight = this.addLight("#77ccff", 0, new Vector3(-10, 20, 10));
   }
   setRendererOptions(innerWidth: number, innerHeight: number): void {
     this.renderer.setPixelRatio(devicePixelRatio);
     this.renderer.setSize(innerWidth, innerHeight);
     this.renderer.toneMapping = ACESFilmicToneMapping;
   }
-  addLights(): void {
-    const sunLight = new DirectionalLight(new Color("#FFCB8E").convertSRGBToLinear(), 3.5);
-    sunLight.translateZ(10);
-    sunLight.translateY(20);
-    sunLight.translateZ(10);
-    sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 512;
-    sunLight.shadow.mapSize.height = 512;
-    sunLight.shadow.camera.near = .5;
-    sunLight.shadow.camera.far = 100;
-    sunLight.shadow.camera.left = -10;
-    sunLight.shadow.camera.bottom = -10;
-    sunLight.shadow.camera.top = 10;
-    sunLight.shadow.camera.right = 10;
+  addLight(color: string, intensity: number, position: Vector3): DirectionalLight {
+    const light = new DirectionalLight(new Color(color).convertSRGBToLinear(), intensity);
+    light.translateZ(10);
+    light.translateY(20);
+    light.translateZ(10);
+    light.castShadow = true;
+    light.shadow.mapSize.width = 512;
+    light.shadow.mapSize.height = 512;
+    light.shadow.camera.near = .5;
+    light.shadow.camera.far = 100;
+    light.shadow.camera.left = -10;
+    light.shadow.camera.bottom = -10;
+    light.shadow.camera.top = 10;
+    light.shadow.camera.right = 10;
+    this.scene.add(light);
 
-    const moonLight = new DirectionalLight(new Color("#77ccff").convertSRGBToLinear(), 0);
-    moonLight.translateZ(-10);
-    moonLight.translateY(20);
-    moonLight.translateZ(10);
-    moonLight.castShadow = true;
-    moonLight.shadow.mapSize.width = 512;
-    moonLight.shadow.mapSize.height = 512;
-    moonLight.shadow.camera.near = .5;
-    moonLight.shadow.camera.far = 100;
-    moonLight.shadow.camera.left = -10;
-    moonLight.shadow.camera.bottom = -10;
-    moonLight.shadow.camera.top = 10;
-    moonLight.shadow.camera.right = 10;
+    return light;
+  }
 
-    this.scene.add(sunLight);
-    this.scene.add(moonLight);
-    this.lights = {
-      sunLight: sunLight,
-      moonLight: moonLight
-    }
+  getMeshById(id: string): Mesh {
+    return this.scene.getObjectByProperty('uuid', id) as Mesh
   }
   render(delta: number): void {
     this.scene.children.forEach((object) => {
       if (!(object instanceof Mesh)) return;
       if (object.userData instanceof Tile) {
-        switch (object.userData.status) {
-          case TileStatus.FOV:
-            object.material.color.set(0x000000);
-            break;
-          case TileStatus.TARGET:
-            object.material.color.set(0x0000ff);
-            break;
-          case TileStatus.PATH:
-            object.material.color.set(0xC5E223);
-            break;
-          case TileStatus.REACHABLE:
-            object.material.color.set(0x03adfc);
-            break;
-          case TileStatus.SELECTED:
-            object.material.color.set(0xff0000);
-            break;
-          case TileStatus.HOVERED:
-            object.material.color.set(0xffff00);
-            break;
-          default:
-            object.material.color.set("white");
-            break;
-        }
-      } else if (object.userData.path) {
-        object.userData.start.lerp(object.userData.path, object.userData.alpha)
-        object.translateX(object.userData.start.x / 6);
-        object.translateY(object.userData.start.y / 6);
-        object.translateZ(object.userData.start.z / 6);
-
-        if (object.userData.alpha < 1) {
-          object.userData.alpha += delta / 100
-        } else {
-          object.translateX(object.userData.start.x - object.userData.path.x);
-          object.translateY(object.userData.start.y - object.userData.path.y);
-          object.translateZ(object.userData.start.z - object.userData.path.z);
-          object.userData = {}
-        }
+        this.updateTileColor(object);
+      } else if (object.userData.pendingMovements && object.userData.pendingMovements.length > 0) {
+        this.updateUnitMovement(object, delta);
       }
     });
     this.renderer.render(this.scene, this.camera);
   }
-  moveUnitMeshToTile(originTileMesh: Mesh, targetTileMesh: Mesh) {
-    const unitMesh = this.scene.getObjectByProperty('uuid', originTileMesh.userData.unit.id as string) as Mesh;
+  updateTileColor(object: Mesh) {
+    switch (object.userData.status) {
+      case TileStatus.FOV:
+        object.material.color.set(0x000000);
+        break;
+      case TileStatus.TARGET:
+        object.material.color.set(0x0000ff);
+        break;
+      case TileStatus.PATH:
+        object.material.color.set(0xC5E223);
+        break;
+      case TileStatus.REACHABLE:
+        object.material.color.set(0x03adfc);
+        break;
+      case TileStatus.SELECTED:
+        object.material.color.set(0xff0000);
+        break;
+      case TileStatus.HOVERED:
+        object.material.color.set(0xffff00);
+        break;
+      default:
+        object.material.color.set("white");
+        break;
+    }
+  }
+  updateUnitMovement(object: Mesh, delta: number) {
+    const pendingMovements: Array<pendingMovement> = object.userData.pendingMovements
+    const pendingMovement = pendingMovements[0];
+    pendingMovement.start.lerp(pendingMovement.path, pendingMovement.alpha)
+    object.translateX(pendingMovement.start.x / 6);
+    object.translateY(pendingMovement.start.y / 6);
+    object.translateZ(pendingMovement.start.z / 6);
+    
+    if (pendingMovement.alpha < 1) {
+      pendingMovement.alpha += delta / 100;
+    } else {
+      object.translateX(pendingMovement.start.x - pendingMovement.path.x);
+      object.translateY(pendingMovement.start.y - pendingMovement.path.y);
+      object.translateZ(pendingMovement.start.z - pendingMovement.path.z);
+      object.userData.pendingMovements.shift();
+    }
+  }
+  moveUnitMeshToTile(tiles: Array<Tile>) {
+    const unit: Unit = tiles[0].unit as Unit;
+    let originTileMesh: Mesh;
+    tiles.forEach(tile => {
+      const tileMesh = this.getMeshById(tile.id);
+      if (originTileMesh) {
+        this.moveUnitMesh(unit, originTileMesh, tileMesh)
+      }
+      originTileMesh = tileMesh;
+    })
+  }
+  moveUnitMesh(unit: Unit, originTileMesh: Mesh, targetTileMesh: Mesh) {
+    const unitMesh = this.getMeshById(unit.id);
     const originIndex: Vector3 = new Vector3(originTileMesh['position'].x, originTileMesh['position'].y * 2, originTileMesh['position'].z);
     const targetIndex: Vector3 = new Vector3(targetTileMesh['position'].x, targetTileMesh['position'].y * 2, targetTileMesh['position'].z);
 
-    unitMesh.userData = {
+    unitMesh.userData.pendingMovements.push({
       path: targetIndex.sub(originIndex),
       start: new Vector3(),
       alpha: 0
-    }
+    })
   }
   cleanScene(): void {
     let objects = this.scene.getObjectsByProperty('name', 'Tile');
