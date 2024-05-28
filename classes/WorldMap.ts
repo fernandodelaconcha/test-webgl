@@ -2,6 +2,7 @@ import { Vector2 } from "three";
 import Tile from "./Tile";
 import { MapShape, TileStatus } from "../utils/Enums";
 import { Pathfinding } from "./Pathfinding";
+import { getGridPlacementByTeamIndex } from "../utils/Utils";
 
 
 export default class WorldMap {
@@ -44,10 +45,27 @@ export default class WorldMap {
     }
     moveUnitToTile(origin: Tile, target: Tile) {
         const unit = origin.unit;
-        origin.unit = null;
-        origin.hasObstacle = false;
+        this.removeUnit(origin);
 
         target.unit = unit;
-        target.hasObstacle = true;        
+        target.hasObstacle = true;
+    }
+    getRandomNonObstacleTileForTeam(teamIndex: number): Tile {
+        const safeLimit = this.size - 5;
+        let i: number;
+        let j: number;
+        [i, j] = getGridPlacementByTeamIndex(teamIndex, safeLimit);
+        let tile: Tile = this.getTileByIndex(new Vector2(i, j));
+        while(tile.height == -99 || tile.hasObstacle) {
+            tile = this.getTileByIndex(new Vector2(i, j));
+            i++;
+            tile = this.getTileByIndex(new Vector2(i, j));
+            j++;
+        }
+        return tile;
+    }
+    removeUnit(tile: Tile) {
+        tile.unit = null;
+        tile.hasObstacle = false;
     }
 };

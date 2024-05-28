@@ -66,3 +66,57 @@ export function tileToPosition(tileX: number, tileY: number, shape: MapShape, si
   }
   return new Vector2(col * 1.77, row * 1.535);
 }
+
+export function getColorByTeamIndex(teamIndex: number): string {
+  switch (teamIndex) {
+    case 0:
+      return 'blue'
+    case 1:
+      return 'red'
+    case 2:
+      return 'yellow'
+    case 3:
+      return 'green'
+    case 4:
+      return 'violet'
+    case 5:
+      return 'grey'
+    case 6:
+      return 'brown'
+    default:
+      return 'black'
+  }
+}
+
+//receive instead of size max row and max col to better placement
+export function getGridPlacementByTeamIndex(teamIndex: number, size: number): Vector2 {
+  let i: number;
+  let j: number;
+  switch (teamIndex) {
+    case 0:
+      i = getRandomIntInRange(0, size / 4);
+      j = getRandomIntInRange(0, size / 4);
+      break;
+    case 1:
+      i = getRandomIntInRange(size * 3 / 4, size);
+      j = getRandomIntInRange(size * 3 / 4, size);
+      break;
+    case 2:
+      i = getRandomIntInRange(size * 3 / 4, size);
+      j = getRandomIntInRange(0, size / 4);
+      break;
+    case 3:
+      i = getRandomIntInRange(size / 2, size *3/ 4);
+      j = getRandomIntInRange(size / 2, size *3/ 4);
+      break;
+    case 4:
+      i = getRandomIntInRange(0, size / 4);
+      j = getRandomIntInRange(size * 3 / 4, size);
+      break;
+    default:
+      i = getRandomIntInRange(size, size);
+      j = getRandomIntInRange(size, size);
+      break;
+  }
+  return new Vector2(i, j);
+}

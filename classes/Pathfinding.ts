@@ -8,17 +8,17 @@ export class Pathfinding {
     constructor(tiles: Array<Tile>) {
         this.tiles = tiles;
     }
-    getTileNeighbors(target: Tile, heightDifference: number): Array<Tile> {
+    getTileNeighbors(target: Tile, heightDifference: number, includeObstacles?: boolean): Array<Tile> {
         let neighbors: Array<Tile> = [];
         if (target.index.y % 2 == 0) {
             this.tiles.forEach(tile => {
-                if (isNeighborForEvenTile(tile, target) && !tile.hasObstacle && Math.abs(tile.height - target.height) < heightDifference) {
+                if (isNeighborForEvenTile(tile, target) && (includeObstacles || !tile.hasObstacle) && Math.abs(tile.height - target.height) < heightDifference) {
                     neighbors.push(tile);
                 }
             });
         } else {
             this.tiles.forEach(tile => {
-                if (isNeighborForOddTile(tile, target) && !tile.hasObstacle && Math.abs(tile.height - target.height) < heightDifference) {
+                if (isNeighborForOddTile(tile, target) && (includeObstacles || !tile.hasObstacle) && Math.abs(tile.height - target.height) < heightDifference) {
                     neighbors.push(tile);
                 }
             });

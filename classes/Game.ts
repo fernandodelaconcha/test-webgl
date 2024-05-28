@@ -4,15 +4,17 @@ import { TileStatus } from "../utils/Enums";
 import { Mesh } from "three";
 import { Unit } from "./Unit";
 import { pendingMovement } from "../utils/Utils";
+import { Player } from "./Player";
 
 export class Game {
 
-  scene: Scene
-  camera: PerspectiveCamera
-  renderer: WebGLRenderer
-  sunLight: DirectionalLight
-  moonLight: DirectionalLight
-  isGameOver: boolean
+  scene: Scene;
+  camera: PerspectiveCamera;
+  renderer: WebGLRenderer;
+  sunLight: DirectionalLight;
+  moonLight: DirectionalLight;
+  isGameOver: boolean;
+  players: Array<Player> = [];
 
   constructor(canvas: HTMLElement, innerWidth: number, innerHeight: number, near: number = .1, far: number = 1000) {
     this.scene = new Scene();
@@ -27,6 +29,8 @@ export class Game {
     this.setRendererOptions(innerWidth, innerHeight);
     this.sunLight = this.addLight("#FFCB8E", 3.5, new Vector3(10, 20, 10));
     this.moonLight = this.addLight("#77ccff", 0, new Vector3(-10, 20, 10));
+    this.addPlayer('Player');
+    this.addPlayer('Enemy');
   }
   setRendererOptions(innerWidth: number, innerHeight: number): void {
     this.renderer.setPixelRatio(devicePixelRatio);
@@ -50,6 +54,17 @@ export class Game {
     this.scene.add(light);
 
     return light;
+  }
+
+  addPlayer(playerName: string): void {
+    this.players.push(new Player(playerName, this.players.length));
+  }
+
+  removePlayer(playerTeam: number): void {
+    const index = this.players.findIndex((player) => {
+      return player.team == playerTeam
+    });
+    this.players.splice(index, 1);
   }
 
   getMeshById(id: string): Mesh {
@@ -129,6 +144,10 @@ export class Game {
       start: new Vector3(),
       alpha: 0
     })
+  }
+  cleanUnitMesh(id: string): void {
+    const unit = this.getMeshById(id);
+    this.scene.remove(unit);
   }
   cleanScene(): void {
     let objects = this.scene.getObjectsByProperty('name', 'Tile');

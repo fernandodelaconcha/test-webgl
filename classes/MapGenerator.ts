@@ -22,6 +22,7 @@ const WATER_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/water
 export default class MapGenerator {
   envmap: Texture;
   scene: Scene;
+  
   constructor(envmap: Texture, scene: Scene) {
     this.envmap = envmap;
     this.scene = scene;
@@ -283,28 +284,5 @@ export default class MapGenerator {
           break;
       }
     }
-    //spawning random units on map
-    else if (random < .05) {
-      this.createUnit(tile, position, height, 'blue');
-    }
-    else if (random < .1) {
-      this.createUnit(tile, position, height, 'red');
-    }
-  }
-  createUnit(tile: Tile, position: Vector2, height: number, color: string): void {
-    tile.unit = new Unit('caca', 30);
-    tile.hasObstacle = true;
-    let geo = new SphereGeometry(.5);
-
-    let mesh = new Mesh(geo, new MeshBasicMaterial({ color }));
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    mesh.name = 'Tile';
-    mesh['position'].set(position.x, height + .5, position.y);
-    mesh.userData = {
-      pendingMovements: []
-    }
-    tile.unit.id = mesh.uuid;
-    this.scene.add(mesh);
   }
 }
