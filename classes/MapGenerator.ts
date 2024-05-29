@@ -22,13 +22,13 @@ const WATER_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/water
 export default class MapGenerator {
   envmap: Texture;
   scene: Scene;
-  
   constructor(envmap: Texture, scene: Scene) {
     this.envmap = envmap;
     this.scene = scene;
   }
-  createMap(shape: MapShape = MapShape.BOX, size: number = 16, seaLevel: number = 3, maxHeight: number = 10, minHeight: number = 0): WorldMap {
-    const seed = window.crypto.randomUUID();
+  createMap(shape: MapShape = MapShape.BOX, size: number = 16, seaLevel: number = 3, maxHeight: number = 10, minHeight: number = 0, seed?: string): WorldMap {
+    if (!seed) seed = window.crypto.randomUUID();
+    console.log({ size, seaLevel, maxHeight, minHeight, seed })
     const noise2D = createNoise2D(Alea(seed));
     const map = new WorldMap(shape, size, seaLevel, maxHeight);
     const tiles: Array<Tile> = [];

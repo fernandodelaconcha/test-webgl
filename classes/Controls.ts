@@ -41,20 +41,20 @@ export class Controls {
   setMap(currentMap: WorldMap): void {
     this.currentMap = currentMap;
     this.spawnUnit(currentMap, 0);
-    this.spawnUnit(currentMap, 0);
-    this.spawnUnit(currentMap, 0);
-    this.spawnUnit(currentMap, 1);
-    this.spawnUnit(currentMap, 1);
-    this.spawnUnit(currentMap, 1);
-    this.spawnUnit(currentMap, 2);
-    this.spawnUnit(currentMap, 2);
-    this.spawnUnit(currentMap, 2);
-    this.spawnUnit(currentMap, 3);
-    this.spawnUnit(currentMap, 3);
-    this.spawnUnit(currentMap, 3);
-    this.spawnUnit(currentMap, 4);
-    this.spawnUnit(currentMap, 4);
-    this.spawnUnit(currentMap, 4);
+    // this.spawnUnit(currentMap, 0);
+    // this.spawnUnit(currentMap, 0);
+    // this.spawnUnit(currentMap, 1);
+    // this.spawnUnit(currentMap, 1);
+    // this.spawnUnit(currentMap, 1);
+    // this.spawnUnit(currentMap, 2);
+    // this.spawnUnit(currentMap, 2);
+    // this.spawnUnit(currentMap, 2);
+    // this.spawnUnit(currentMap, 3);
+    // this.spawnUnit(currentMap, 3);
+    // this.spawnUnit(currentMap, 3);
+    // this.spawnUnit(currentMap, 4);
+    // this.spawnUnit(currentMap, 4);
+    // this.spawnUnit(currentMap, 4);
   }
   handlePointerMove(event: PointerEvent): void {
     this.game.scene.children.forEach((element) => {
@@ -118,25 +118,16 @@ export class Controls {
       }
     }
   }
-  handleKeyDown(event: KeyboardEvent): boolean {
+  handleKeyDown(event: KeyboardEvent): void {
     let sunBackground: HTMLElement = document.querySelector(".sun-background") as HTMLElement;
     let moonBackground: HTMLElement = document.querySelector(".moon-background") as HTMLElement;
     switch (event.key) {
       case 'Escape':
         this.game.quitGame();
         break;
-      case 'r':
-        this.game.cleanScene();
-        let size = getRandomIntInRange(16, 30)
-        let seaLevel = getRandomIntInRange(0, 5)
-        let maxHeight = getRandomIntInRange(5, 10)
-        let minHeight = getRandomIntInRange(0, 5);
-        console.log({ size, seaLevel, maxHeight, minHeight })
-        return true;
-
       case 'Enter':
         this.currentPlayer = this.game.players[0];
-        if (animating) return false;
+        if (animating) return;
         let anim;
         if (!daytime) {
           anim = [1, 0];
@@ -169,7 +160,6 @@ export class Controls {
       default:
         break;
     }
-    return false;
   }
   spawnUnit(currentMap: WorldMap, team: number){
     let randomTile = currentMap.getRandomNonObstacleTileForTeam(team);

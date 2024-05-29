@@ -7,9 +7,22 @@
     <title>Threejs App</title>
   </head>
   <body>
-    <div class="sun-background"></div>
-    <div class="moon-background"></div>
-    <canvas id="bg"></canvas>
     <script type="module" src="/main.js"></script>
+    <div class="debug-menu">
+      <label> Seed: <input type="text" id="seed" value="" autocomplete="off"/></label>
+      <label> Size: <input type="number" id="size" value="" autocomplete="off"/></label>
+      <label> Sea Level: <input type="number" id="seaLevel" value="" autocomplete="off"/></label>
+      <label> Max Height: <input type="number" id="maxHeight" value="" autocomplete="off"/></label>
+      <label> Min Height: <input type="number" id="minHeight" value="" autocomplete="off"/></label>
+      <input type="radio" id="box" name="shape" value="box"/><label for="box">Box</label>
+      <input type="radio" id="circle" name="shape" value="circle" checked/><label for="circle">Circle</label>
+    
+      <button id="reset-world">Reset world</button>
+    </div>
+    <div class="game">
+      <div class="sun-background"></div>
+      <div class="moon-background"></div>
+      <canvas id="bg"></canvas>
+    </div>
   </body>
 </html>

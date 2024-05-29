@@ -11,8 +11,28 @@ import { getRandomIntInRange } from "./utils/Utils";
 const FPS = 30;
 const INTERVAL = 1000 / FPS;
 
-let game = new Game(document.querySelector('#bg'), innerWidth, innerHeight);
+let game = new Game(document.querySelector('#bg'), innerWidth, innerHeight * .9);
 let controls = new Controls(game);
+
+const sizeInput = document.querySelector("#size");
+const seaInput = document.querySelector("#seaLevel");
+const maxHeightInput = document.querySelector("#maxHeight");
+const minHeightInput = document.querySelector("#minHeight");
+const seedInput = document.querySelector("#seed");
+const shapeInput = document.querySelector('#circle')
+const button = document.querySelector("#reset-world");
+
+button.addEventListener('click', () => {
+  let size = sizeInput.value != '' ? Number(sizeInput.value) : getRandomIntInRange(16, 30)
+  let seaLevel = seaInput.value != '' ? Number(seaInput.value) : getRandomIntInRange(0, 5)
+  let maxHeight = maxHeightInput.value != '' ? Number(maxHeightInput.value) : getRandomIntInRange(5, 10)
+  let minHeight = minHeightInput.value != '' ? Number(minHeightInput.value) : getRandomIntInRange(0, 5);
+  let shape = shapeInput.checked ? 1 : 0;
+  let seed = seedInput.value;
+  game.cleanScene();
+  currentMap = mapGenerator.createMap(shape, size, seaLevel, maxHeight, minHeight, seed);
+  controls.setMap(currentMap);
+})
 
 //world generation
 let pmrem = new PMREMGenerator(game.renderer);
@@ -69,16 +89,7 @@ function onMouseDown(e) {
   controls.handleMouseDown(e);
 }
 function onKeyDown(e) {
-  const shouldResetWorld = controls.handleKeyDown(e)
-  if (shouldResetWorld) {
-    let size = getRandomIntInRange(16, 30)
-    let seaLevel = getRandomIntInRange(0, 5)
-    let maxHeight = getRandomIntInRange(5, 10)
-    let minHeight = getRandomIntInRange(0, 5);
-    console.log({ size, seaLevel, maxHeight, minHeight })
-    currentMap = mapGenerator.createMap(getRandomIntInRange(0, 1), size, seaLevel, maxHeight, minHeight);
-    controls.setMap(currentMap);
-  };
+  controls.handleKeyDown(e);
 }
 
 gameLoop(0);
