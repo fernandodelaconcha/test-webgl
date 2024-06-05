@@ -20,7 +20,8 @@ export class Controls {
   selectedTile: Tile;
   selectedAction: Actions = Actions.SELECT_TILE;
   currentPath: Array<Tile>;
-  currentPlayer: Player;
+  currentUnitIndex: number;
+  turnOrder: Array<Tile>
 
   constructor(game: Game) {
     this.game = game;
@@ -33,7 +34,6 @@ export class Controls {
       MIDDLE: MOUSE.ROTATE,
       RIGHT: 0,
     }
-    this.currentPlayer = this.game.players[0];
   }
   update(): void {
     this.orbitControls.update();
@@ -41,20 +41,21 @@ export class Controls {
   setMap(currentMap: WorldMap): void {
     this.currentMap = currentMap;
     this.spawnUnit(currentMap, 0);
-    // this.spawnUnit(currentMap, 0);
-    // this.spawnUnit(currentMap, 0);
-    // this.spawnUnit(currentMap, 1);
-    // this.spawnUnit(currentMap, 1);
-    // this.spawnUnit(currentMap, 1);
-    // this.spawnUnit(currentMap, 2);
-    // this.spawnUnit(currentMap, 2);
-    // this.spawnUnit(currentMap, 2);
-    // this.spawnUnit(currentMap, 3);
-    // this.spawnUnit(currentMap, 3);
-    // this.spawnUnit(currentMap, 3);
-    // this.spawnUnit(currentMap, 4);
-    // this.spawnUnit(currentMap, 4);
-    // this.spawnUnit(currentMap, 4);
+    this.spawnUnit(currentMap, 0);
+    this.spawnUnit(currentMap, 0);
+    this.spawnUnit(currentMap, 1);
+    this.spawnUnit(currentMap, 1);
+    this.spawnUnit(currentMap, 1);
+    this.spawnUnit(currentMap, 2);
+    this.spawnUnit(currentMap, 2);
+    this.spawnUnit(currentMap, 2);
+    this.spawnUnit(currentMap, 3);
+    this.spawnUnit(currentMap, 3);
+    this.spawnUnit(currentMap, 3);
+    this.spawnUnit(currentMap, 4);
+    this.spawnUnit(currentMap, 4);
+    this.spawnUnit(currentMap, 4);
+    this.processNextUnit();
   }
   handlePointerMove(event: PointerEvent): void {
     this.game.scene.children.forEach((element) => {
@@ -85,36 +86,21 @@ export class Controls {
   handleMouseDown(event: MouseEvent): void {
     if (event.which == 1) {
       const originTile = this.selectedTile;
-      this.selectedTile = getTileFromRaycast(event, this.game);
-      if (originTile && originTile instanceof Tile) {
-        originTile.setTileStatus(TileStatus.NORMAL, true);
-        this.currentMap.applyStatusToTiles(TileStatus.REACHABLE, TileStatus.NORMAL);
-      };
-      if (this.selectedTile instanceof Tile) {
-        if (this.selectedAction == Actions.MOVE_UNIT && this.selectedTile.status == TileStatus.TARGET) {
+      const targetTile = getTileFromRaycast(event, this.game);
+        if (this.selectedAction == Actions.MOVE_UNIT && targetTile.status == TileStatus.TARGET) {
           this.game.moveUnitMeshToTile(this.currentPath);
-          this.currentMap.moveUnitToTile(originTile, this.selectedTile);
-          const attackZone = this.currentMap.pathfinding.getTileNeighbors(this.selectedTile, MOVEMENT, true);
+          this.currentMap.moveUnitToTile(originTile, targetTile);
+          const attackZone = this.currentMap.pathfinding.getTileNeighbors(targetTile, MOVEMENT, true);
           attackZone.forEach((tile: Tile) => {
-            if (tile.unit && tile.unit.team != this.selectedTile.unit?.team) {
+            if (tile.unit && tile.unit.team != targetTile.unit?.team) {
               this.game.cleanUnitMesh(tile.unit.id as string);
               this.currentMap.removeUnit(tile);
             }
           })
           this.currentMap.clearStatusFromAllTiles();
           this.selectedAction = Actions.SELECT_TILE;
+          this.processNextUnit();
           return;
-        }
-        else if (this.selectedAction == Actions.SELECT_TILE && this.selectedTile.unit && this.selectedTile.unit.team == this.currentPlayer.team) {
-          this.selectedTile.setTileStatus(TileStatus.SELECTED);
-          const reachables = this.currentMap.pathfinding.getReachables(this.selectedTile, MOVEMENT, 2);
-          reachables.forEach((reachable) => {
-            reachable.setTileStatus(TileStatus.REACHABLE);
-          })
-          this.selectedAction = Actions.MOVE_UNIT;
-        } else {
-          this.selectedAction = Actions.SELECT_TILE;
-        }
       }
     }
   }
@@ -126,7 +112,6 @@ export class Controls {
         this.game.quitGame();
         break;
       case 'Enter':
-        this.currentPlayer = this.game.players[0];
         if (animating) return;
         let anim;
         if (!daytime) {
@@ -161,7 +146,7 @@ export class Controls {
         break;
     }
   }
-  spawnUnit(currentMap: WorldMap, team: number){
+  spawnUnit(currentMap: WorldMap, team: number) {
     let randomTile = currentMap.getRandomNonObstacleTileForTeam(team);
     if (randomTile.height == -99) randomTile = currentMap.getRandomNonObstacleTileForTeam(team);
     const position: Vector3 = this.game.getMeshById(randomTile.id)['position']
@@ -183,5 +168,22 @@ export class Controls {
     }
     tile.unit.id = mesh.uuid;
     this.game.scene.add(mesh);
+  }
+  processNextUnit() {
+    if (!this.selectedTile || this.currentUnitIndex == this.turnOrder.length - 1){
+      this.turnOrder = this.currentMap.getAllTilesWithUnit();
+      this.selectedTile = this.turnOrder[0];
+      this.currentUnitIndex = 0;
+    }
+    else {
+      this.currentUnitIndex++;
+      this.selectedTile = this.turnOrder[this.currentUnitIndex]
+    }
+    this.selectedTile.setTileStatus(TileStatus.SELECTED);
+    const reachables = this.currentMap.pathfinding.getReachables(this.selectedTile, MOVEMENT, 2);
+    reachables.forEach((reachable) => {
+      reachable.setTileStatus(TileStatus.REACHABLE);
+    })
+    this.selectedAction = Actions.MOVE_UNIT;
   }
 }

@@ -64,8 +64,17 @@ export default class WorldMap {
         }
         return tile;
     }
-    removeUnit(tile: Tile) {
+    removeUnit(tile: Tile): void {
         tile.unit = null;
         tile.hasObstacle = false;
+    }
+    getAllTilesWithUnit(): Array<Tile> {
+        const units : Array<Tile> = [];
+        this.tiles.forEach(tile => {
+            if (tile.unit) {
+                units.push(tile);
+            }
+        })
+        return units;
     }
 };
