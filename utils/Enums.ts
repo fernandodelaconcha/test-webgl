@@ -22,8 +22,14 @@ export enum TileStatus {
     FOV
 }
 
-export enum Actions {
+export enum Action {
     NONE,
     SELECT_TILE,
     MOVE_UNIT
+}
+
+export enum AIProfile {
+    AGGRESIVE,
+    RANGED,
+    SUPPORT
 }

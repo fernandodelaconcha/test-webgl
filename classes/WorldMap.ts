@@ -3,6 +3,7 @@ import Tile from "./Tile";
 import { MapShape, TileStatus } from "../utils/Enums";
 import { Pathfinding } from "./Pathfinding";
 import { getGridPlacementByTeamIndex } from "../utils/Utils";
+import { Unit } from "./Unit";
 
 
 export default class WorldMap {
@@ -47,8 +48,9 @@ export default class WorldMap {
         const unit = origin.unit;
         this.removeUnit(origin);
 
-        target.unit = unit;
+        target.unit = unit as Unit;
         target.hasObstacle = true;
+        target.unit.tile = target;
     }
     getRandomNonObstacleTileForTeam(teamIndex: number): Tile {
         const safeLimit = this.size - 5;
@@ -72,6 +74,24 @@ export default class WorldMap {
         const units : Array<Tile> = [];
         this.tiles.forEach(tile => {
             if (tile.unit) {
+                units.push(tile);
+            }
+        })
+        return units;
+    }
+    getEnemiesForUnit(unit: Unit): Array<Tile> {
+        const units : Array<Tile> = [];
+        this.tiles.forEach(tile => {
+            if (tile.unit && tile.unit.team !== unit.team) {
+                units.push(tile);
+            }
+        })
+        return units;
+    }
+    getAlliesForUnit(unit: Unit): Array<Tile> {
+        const units : Array<Tile> = [];
+        this.tiles.forEach(tile => {
+            if (tile.unit && tile.unit.team === unit.team) {
                 units.push(tile);
             }
         })

@@ -2,7 +2,7 @@ import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { Game } from "./Game";
 import { MOUSE, Mesh, MeshBasicMaterial, SphereGeometry, Vector2, Vector3 } from "three";
 import Tile from "./Tile";
-import { Actions, TileStatus } from "../utils/Enums";
+import { Action, TileStatus } from "../utils/Enums";
 import { getColorByTeamIndex, getRandomIntInRange, getTileFromRaycast } from "../utils/Utils";
 import WorldMap from "./WorldMap";
 import anime from 'animejs';
@@ -18,7 +18,7 @@ export class Controls {
   orbitControls: OrbitControls;
   currentMap: WorldMap;
   selectedTile: Tile;
-  selectedAction: Actions = Actions.SELECT_TILE;
+  selectedAction: Action = Action.SELECT_TILE;
   currentPath: Array<Tile>;
   currentUnitIndex: number;
   turnOrder: Array<Tile>
@@ -58,6 +58,7 @@ export class Controls {
     this.processNextUnit();
   }
   handlePointerMove(event: PointerEvent): void {
+    //TODO: this needs to be merged with movement functions created for AI
     this.game.scene.children.forEach((element) => {
       if (element.userData instanceof Tile) {
         if (element.userData.status == TileStatus.HOVERED) {
@@ -73,7 +74,7 @@ export class Controls {
     if (hovered.status == TileStatus.REACHABLE || hovered.status == TileStatus.PATH) {
       this.currentMap.applyStatusToTiles(TileStatus.PATH, TileStatus.REACHABLE);
       hovered.setTileStatus(TileStatus.TARGET);
-      this.currentPath = this.currentMap.pathfinding.findPath(this.selectedTile, hovered, 2)
+      this.currentPath = this.currentMap.pathfinding.findPath(this.selectedTile, hovered, 2);
       this.currentPath.forEach(element => {
         element.setTileStatus(TileStatus.PATH)
       });
@@ -87,20 +88,8 @@ export class Controls {
     if (event.which == 1) {
       const originTile = this.selectedTile;
       const targetTile = getTileFromRaycast(event, this.game);
-        if (this.selectedAction == Actions.MOVE_UNIT && targetTile.status == TileStatus.TARGET) {
-          this.game.moveUnitMeshToTile(this.currentPath);
-          this.currentMap.moveUnitToTile(originTile, targetTile);
-          const attackZone = this.currentMap.pathfinding.getTileNeighbors(targetTile, MOVEMENT, true);
-          attackZone.forEach((tile: Tile) => {
-            if (tile.unit && tile.unit.team != targetTile.unit?.team) {
-              this.game.cleanUnitMesh(tile.unit.id as string);
-              this.currentMap.removeUnit(tile);
-            }
-          })
-          this.currentMap.clearStatusFromAllTiles();
-          this.selectedAction = Actions.SELECT_TILE;
-          this.processNextUnit();
-          return;
+        if (this.selectedAction == Action.MOVE_UNIT && targetTile.status == TileStatus.TARGET) {
+          this.moveUnit(originTile, targetTile);
       }
     }
   }
@@ -153,7 +142,8 @@ export class Controls {
     this.createUnit(randomTile, team, new Vector2(position.x, position.z))
   }
   createUnit(tile: Tile, team: number, position: Vector2): void {
-    tile.unit = new Unit(team, 'unit', 30);
+    tile.unit = new Unit(this.currentMap, team, 'unit', 30, 2);
+    tile.unit.tile = tile;
     tile.hasObstacle = true;
     let geo = new SphereGeometry(.5);
 
@@ -169,6 +159,20 @@ export class Controls {
     tile.unit.id = mesh.uuid;
     this.game.scene.add(mesh);
   }
+  moveUnit(originTile: Tile, targetTile: Tile){
+    this.game.moveUnitMeshToTile(this.currentPath);
+    this.currentMap.moveUnitToTile(originTile, targetTile);
+    const attackZone = this.currentMap.pathfinding.getTileNeighbors(targetTile, MOVEMENT, true);
+    attackZone.forEach((tile: Tile) => {
+      if (tile.unit && tile.unit.team != targetTile.unit?.team) {
+        this.game.cleanUnitMesh(tile.unit.id as string);
+        this.currentMap.removeUnit(tile);
+      }
+    })
+    this.currentMap.clearStatusFromAllTiles();
+    this.selectedAction = Action.SELECT_TILE;
+    this.processNextUnit();
+  }
   processNextUnit() {
     if (!this.selectedTile || this.currentUnitIndex == this.turnOrder.length - 1){
       this.turnOrder = this.currentMap.getAllTilesWithUnit();
@@ -179,11 +183,19 @@ export class Controls {
       this.currentUnitIndex++;
       this.selectedTile = this.turnOrder[this.currentUnitIndex]
     }
-    this.selectedTile.setTileStatus(TileStatus.SELECTED);
     const reachables = this.currentMap.pathfinding.getReachables(this.selectedTile, MOVEMENT, 2);
-    reachables.forEach((reachable) => {
-      reachable.setTileStatus(TileStatus.REACHABLE);
-    })
-    this.selectedAction = Actions.MOVE_UNIT;
+    const unit = this.selectedTile.unit as Unit;
+    if (unit.team === 0){
+      this.selectedTile.setTileStatus(TileStatus.SELECTED);
+      reachables.forEach((reachable) => {
+        reachable.setTileStatus(TileStatus.REACHABLE);
+      })
+      this.selectedAction = Action.MOVE_UNIT;
+    }
+    else {
+      const targetTile: Tile = unit.AI.getBestIndexInReachables(reachables) as Tile;
+      this.currentPath = this.currentMap.pathfinding.findPath(this.selectedTile, targetTile, unit.verticalMovement);
+      this.moveUnit(this.selectedTile, targetTile as Tile);
+    }
   }
 }
