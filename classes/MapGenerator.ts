@@ -4,8 +4,7 @@ import WorldMap from './WorldMap';
 import { Vector2, CylinderGeometry, Color, SphereGeometry, Mesh, MeshPhysicalMaterial, Scene, DoubleSide, TextureLoader, MeshStandardMaterial, MeshBasicMaterial, Texture, BoxGeometry, BufferGeometry, Vector3 } from 'three';
 import { BufferGeometryUtils } from 'three/examples/jsm/Addons.js';
 import Alea from 'alea';
-import { MapShape, TextureType } from '../utils/Enums';
-import { Unit } from './Unit';
+import { MapShape, TerrainType, TextureType } from '../utils/Enums';
 import { tileToPosition } from '../utils/Utils';
 
 const STONE_CONSTANT = .8;
@@ -26,7 +25,7 @@ export default class MapGenerator {
     this.envmap = envmap;
     this.scene = scene;
   }
-  createMap(shape: MapShape = MapShape.BOX, size: number = 16, seaLevel: number = 3, maxHeight: number = 10, minHeight: number = 0, seed?: string): WorldMap {
+  createMap(shape: MapShape = MapShape.BOX, terrain: TerrainType, size: number = 16, seaLevel: number = 3, maxHeight: number = 10, minHeight: number = 0, seed?: string): WorldMap {
     if (!seed) seed = window.crypto.randomUUID();
     console.log({ size, seaLevel, maxHeight, minHeight, seed })
     const noise2D = createNoise2D(Alea(seed));
@@ -45,7 +44,7 @@ export default class MapGenerator {
         if (height <= 0) continue;
 
         const tile = new Tile(new Vector2(i, j), height);
-        const textureType = this.getRandomTexture(height, maxHeight, seaLevel);
+        const textureType = this.getRandomTexture(terrain, height, maxHeight);
         tile.texture = textureType;
         this.populateWorld(textureType, tile, height, position);
         tiles.push(tile);
@@ -239,18 +238,35 @@ export default class MapGenerator {
     mesh.name = "Cloud";
     this.scene.add(mesh);
   }
-  getRandomTexture(rawHeight: number, maxHeight: number, seaLevel: number): TextureType {
-    const height = rawHeight
+  getRandomTexture(terrainType: TerrainType, height: number, maxHeight: number): TextureType {
+    const palette = this.getTexturePaletteFromTerrainType(terrainType);
     if (height > STONE_CONSTANT * maxHeight) {
-      return TextureType.STONE_TEXTURE;
+      return palette[0];
     } else if (height > DIRT_CONSTANT * maxHeight) {
-      return TextureType.DIRT_TEXTURE;
+      return palette[1];
     } else if (height > GRASS_CONSTANT * maxHeight) {
-      return TextureType.GRASS_TEXTURE;
+      return palette[2];
     } else if (height > SAND_CONSTANT * maxHeight) {
-      return TextureType.SAND_TEXTURE;
+      return palette[3];
     } else
       return TextureType.DIRT2_TEXTURE;
+  }
+  getTexturePaletteFromTerrainType(terrainType: TerrainType): Array<TextureType> {
+    switch (terrainType) {
+      case TerrainType.FOREST:
+      case TerrainType.ISLAND:
+      case TerrainType.MOUNTAIN:
+      case TerrainType.PLAINS:
+      case TerrainType.SWAMP:
+      case TerrainType.DESERT:
+      default:
+        return [
+          TextureType.STONE_TEXTURE,
+          TextureType.DIRT_TEXTURE,
+          TextureType.GRASS_TEXTURE,
+          TextureType.SAND_TEXTURE,
+        ]
+    }
   }
   getTextureFromTextureType(textureType: TextureType): Texture {
     switch (textureType) {

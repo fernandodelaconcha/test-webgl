@@ -21,7 +21,8 @@ export class Controls {
   selectedAction: Action = Action.SELECT_TILE;
   currentPath: Array<Tile>;
   currentUnitIndex: number;
-  turnOrder: Array<Tile>
+  turnOrder: Array<Tile>;
+  players: Array<Player> = [];
 
   constructor(game: Game) {
     this.game = game;
@@ -40,21 +41,11 @@ export class Controls {
   }
   setMap(currentMap: WorldMap): void {
     this.currentMap = currentMap;
-    this.spawnUnit(currentMap, 0);
-    this.spawnUnit(currentMap, 0);
+
+    this.players.push(new Player('heroes', 0));
+    //this.players.push(new Player('antiheroes', 1));
     this.spawnUnit(currentMap, 0);
     this.spawnUnit(currentMap, 1);
-    this.spawnUnit(currentMap, 1);
-    this.spawnUnit(currentMap, 1);
-    this.spawnUnit(currentMap, 2);
-    this.spawnUnit(currentMap, 2);
-    this.spawnUnit(currentMap, 2);
-    this.spawnUnit(currentMap, 3);
-    this.spawnUnit(currentMap, 3);
-    this.spawnUnit(currentMap, 3);
-    this.spawnUnit(currentMap, 4);
-    this.spawnUnit(currentMap, 4);
-    this.spawnUnit(currentMap, 4);
     this.processNextUnit();
   }
   handlePointerMove(event: PointerEvent): void {
@@ -185,7 +176,7 @@ export class Controls {
     }
     const reachables = this.currentMap.pathfinding.getReachables(this.selectedTile, MOVEMENT, 2);
     const unit = this.selectedTile.unit as Unit;
-    if (unit.team === 0){
+    if (this.players.findIndex(player => player.team == unit.team) !== -1){
       this.selectedTile.setTileStatus(TileStatus.SELECTED);
       reachables.forEach((reachable) => {
         reachable.setTileStatus(TileStatus.REACHABLE);

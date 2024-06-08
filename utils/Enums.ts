@@ -12,6 +12,15 @@ export enum MapShape {
     CIRCLE
 }
 
+export enum TerrainType {
+    SWAMP,
+    PLAINS,
+    MOUNTAIN,
+    ISLAND,
+    FOREST,
+    DESERT
+}
+
 export enum TileStatus {
     NORMAL,
     HOVERED,
@@ -31,5 +40,6 @@ export enum Action {
 export enum AIProfile {
     AGGRESIVE,
     RANGED,
-    SUPPORT
+    SUPPORT,
+    COWARD
 }

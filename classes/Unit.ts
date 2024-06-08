@@ -1,3 +1,4 @@
+import { AIProfile } from "../utils/Enums";
 import Tile from "./Tile";
 import { UnitAI } from "./UnitAI";
 import WorldMap from "./WorldMap";
@@ -16,7 +17,7 @@ export class Unit {
         this.type = type;
         this.maxHp = maxHp;
         this.currentHp = maxHp;
-        this.AI = new UnitAI(map);
+        this.AI = new UnitAI(map, AIProfile.RANGED);
         this.AI.unit = this;
         this.verticalMovement = verticalMovement
     }
