@@ -1,33 +1,22 @@
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { Game } from "./Game";
-import { MOUSE, Mesh, MeshBasicMaterial, SphereGeometry, Vector2, Vector3 } from "three";
+import { MOUSE, Mesh } from "three";
 import Tile from "./Tile";
 import { Action, TileStatus } from "../utils/Enums";
-import { getColorByTeamIndex, getRandomIntInRange, getTileFromRaycast } from "../utils/Utils";
+import { getTileFromRaycast } from "../utils/Utils";
 import WorldMap from "./WorldMap";
-import anime from 'animejs';
-import { Player } from "./Player";
-import { Unit } from "./Unit";
 import { DayNightControls } from "./DayNightControls";
-
-const MOVEMENT = 4;
-let daytime = true;
-let animating = false;
+import { CombatSystem } from "./CombatSystem";
 
 export class Controls {
   game: Game;
+  combatSystem: CombatSystem;
   orbitControls: OrbitControls;
-  currentMap: WorldMap;
-  selectedTile: Tile;
-  selectedAction: Action = Action.SELECT_TILE;
-  currentPath: Array<Tile>;
-  currentUnitIndex: number;
-  turnOrder: Array<Tile>;
-  players: Array<Player> = [];
   dayNightControls: DayNightControls;
 
   constructor(game: Game) {
     this.game = game;
+    this.combatSystem = new CombatSystem(game);
     this.orbitControls = new OrbitControls(game.camera, game.renderer.domElement);
     this.orbitControls.dampingFactor = 0.05;
     this.orbitControls.enableDamping = true;
@@ -43,33 +32,27 @@ export class Controls {
     this.orbitControls.update();
   }
   setMap(currentMap: WorldMap): void {
-    this.currentMap = currentMap;
-
-    this.players.push(new Player('heroes', 0));
-    //this.players.push(new Player('antiheroes', 1));
-    this.spawnUnit(currentMap, 0);
-    this.spawnUnit(currentMap, 1);
-    this.processNextUnit();
+    this.combatSystem.setMap(currentMap);
   }
   handlePointerMove(event: PointerEvent): void {
     this.cleanTileStatesFromScene();
     const hoveredMesh = getTileFromRaycast(event, this.game);
     let hovered = hoveredMesh as Tile
     if (!(hovered instanceof Tile)) return;
-    this.cleanCurrentPath()
+    this.combatSystem.cleanCurrentPath()
     if (hovered.status == TileStatus.REACHABLE || hovered.status == TileStatus.PATH) {
       hovered.setTileStatus(TileStatus.TARGET);
-      this.setPathStatus(hovered);
+      this.combatSystem.setPathStatus(hovered);
     } else {
       hovered.setTileStatus(TileStatus.HOVERED);
     }
   }
   handleMouseDown(event: MouseEvent): void {
     if (event.which == 1) {
-      const originTile = this.selectedTile;
+      const originTile = this.combatSystem.selectedTile;
       const targetTile = getTileFromRaycast(event, this.game);
-      if (this.selectedAction == Action.MOVE_UNIT && targetTile.status == TileStatus.TARGET) {
-        this.moveUnit(originTile, targetTile);
+      if (this.combatSystem.selectedAction == Action.MOVE_UNIT && targetTile.status == TileStatus.TARGET) {
+        this.combatSystem.moveUnit(originTile, targetTile);
       }
     }
   }
@@ -95,78 +78,5 @@ export class Controls {
         }
       }
     })
-  }
-  cleanCurrentPath() {
-    this.currentPath = [];
-    this.currentMap.applyStatusToTiles(TileStatus.PATH, TileStatus.REACHABLE)
-  }
-  setPathStatus(hovered: Tile) {
-    this.currentPath = this.currentMap.pathfinding.findPath(this.selectedTile, hovered, 2);
-    this.currentPath.forEach(element => {
-      element.setTileStatus(TileStatus.PATH)
-    });
-  }
-  spawnUnit(currentMap: WorldMap, team: number) {
-    let randomTile = currentMap.getRandomNonObstacleTileForTeam(team);
-    if (randomTile.height == -99) randomTile = currentMap.getRandomNonObstacleTileForTeam(team);
-    const position: Vector3 = this.game.getMeshById(randomTile.id)['position']
-    this.createUnit(randomTile, team, new Vector2(position.x, position.z))
-  }
-  createUnit(tile: Tile, team: number, position: Vector2): void {
-    tile.unit = new Unit(this.currentMap, team, 'unit', 30, 2);
-    tile.unit.tile = tile;
-    tile.hasObstacle = true;
-    let geo = new SphereGeometry(.5);
-
-    const color = getColorByTeamIndex(team);
-    let mesh = new Mesh(geo, new MeshBasicMaterial({ color }));
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    mesh.name = 'Tile';
-    mesh['position'].set(position.x, tile.height + .5, position.y);
-    mesh.userData = {
-      pendingMovements: []
-    }
-    tile.unit.id = mesh.uuid;
-    this.game.scene.add(mesh);
-  }
-  moveUnit(originTile: Tile, targetTile: Tile) {
-    this.game.moveUnitMeshToTile(this.currentPath);
-    this.currentMap.moveUnitToTile(originTile, targetTile);
-    const attackZone = this.currentMap.pathfinding.getTileNeighbors(targetTile, MOVEMENT, true);
-    attackZone.forEach((tile: Tile) => {
-      if (tile.unit && tile.unit.team != targetTile.unit?.team) {
-        this.game.cleanUnitMesh(tile.unit.id as string);
-        this.currentMap.removeUnit(tile);
-      }
-    })
-    this.currentMap.clearStatusFromAllTiles();
-    this.selectedAction = Action.SELECT_TILE;
-    this.processNextUnit();
-  }
-  processNextUnit() {
-    if (!this.selectedTile || this.currentUnitIndex == this.turnOrder.length - 1) {
-      this.turnOrder = this.currentMap.getAllTilesWithUnit();
-      this.selectedTile = this.turnOrder[0];
-      this.currentUnitIndex = 0;
-    }
-    else {
-      this.currentUnitIndex++;
-      this.selectedTile = this.turnOrder[this.currentUnitIndex]
-    }
-    const reachables = this.currentMap.pathfinding.getReachables(this.selectedTile, MOVEMENT, 2);
-    const unit = this.selectedTile.unit as Unit;
-    if (this.players.findIndex(player => player.team == unit.team) !== -1) {
-      this.selectedTile.setTileStatus(TileStatus.SELECTED);
-      reachables.forEach((reachable) => {
-        reachable.setTileStatus(TileStatus.REACHABLE);
-      })
-      this.selectedAction = Action.MOVE_UNIT;
-    }
-    else {
-      const targetTile: Tile = unit.AI.getBestIndexInReachables(reachables) as Tile;
-      this.currentPath = this.currentMap.pathfinding.findPath(this.selectedTile, targetTile, unit.verticalMovement);
-      this.moveUnit(this.selectedTile, targetTile as Tile);
-    }
   }
 }
