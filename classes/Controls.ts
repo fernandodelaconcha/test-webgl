@@ -8,6 +8,7 @@ import WorldMap from "./WorldMap";
 import anime from 'animejs';
 import { Player } from "./Player";
 import { Unit } from "./Unit";
+import { DayNightControls } from "./DayNightControls";
 
 const MOVEMENT = 4;
 let daytime = true;
@@ -23,6 +24,7 @@ export class Controls {
   currentUnitIndex: number;
   turnOrder: Array<Tile>;
   players: Array<Player> = [];
+  dayNightControls: DayNightControls;
 
   constructor(game: Game) {
     this.game = game;
@@ -35,6 +37,7 @@ export class Controls {
       MIDDLE: MOUSE.ROTATE,
       RIGHT: 0,
     }
+    this.dayNightControls = new DayNightControls();
   }
   update(): void {
     this.orbitControls.update();
@@ -49,8 +52,41 @@ export class Controls {
     this.processNextUnit();
   }
   handlePointerMove(event: PointerEvent): void {
-    //TODO: this needs to be merged with movement functions created for AI
-    this.game.scene.children.forEach((element) => {
+    this.cleanTileStatesFromScene();
+    const hoveredMesh = getTileFromRaycast(event, this.game);
+    let hovered = hoveredMesh as Tile
+    if (!(hovered instanceof Tile)) return;
+    this.cleanCurrentPath()
+    if (hovered.status == TileStatus.REACHABLE || hovered.status == TileStatus.PATH) {
+      hovered.setTileStatus(TileStatus.TARGET);
+      this.setPathStatus(hovered);
+    } else {
+      hovered.setTileStatus(TileStatus.HOVERED);
+    }
+  }
+  handleMouseDown(event: MouseEvent): void {
+    if (event.which == 1) {
+      const originTile = this.selectedTile;
+      const targetTile = getTileFromRaycast(event, this.game);
+      if (this.selectedAction == Action.MOVE_UNIT && targetTile.status == TileStatus.TARGET) {
+        this.moveUnit(originTile, targetTile);
+      }
+    }
+  }
+  handleKeyDown(event: KeyboardEvent): void {
+    switch (event.key) {
+      case 'Escape':
+        this.game.quitGame();
+        break;
+      case 'Enter':
+        this.dayNightControls.animate(this.game);
+        break;
+      default:
+        break;
+    }
+  }
+  cleanTileStatesFromScene(): void {
+    this.game.scene.children.forEach((element: Mesh) => {
       if (element.userData instanceof Tile) {
         if (element.userData.status == TileStatus.HOVERED) {
           element.userData.setTileStatus(TileStatus.NORMAL, true);
@@ -59,72 +95,16 @@ export class Controls {
         }
       }
     })
-    const hoveredMesh = getTileFromRaycast(event, this.game);
-    let hovered = hoveredMesh as Tile
-    if (!(hovered instanceof Tile) || (hovered.hasObstacle && !hovered.unit)) return;
-    if (hovered.status == TileStatus.REACHABLE || hovered.status == TileStatus.PATH) {
-      this.currentMap.applyStatusToTiles(TileStatus.PATH, TileStatus.REACHABLE);
-      hovered.setTileStatus(TileStatus.TARGET);
-      this.currentPath = this.currentMap.pathfinding.findPath(this.selectedTile, hovered, 2);
-      this.currentPath.forEach(element => {
-        element.setTileStatus(TileStatus.PATH)
-      });
-    } else {
-      hovered.setTileStatus(TileStatus.HOVERED);
-      this.currentPath = [];
-      this.currentMap.applyStatusToTiles(TileStatus.PATH, TileStatus.REACHABLE)
-    }
   }
-  handleMouseDown(event: MouseEvent): void {
-    if (event.which == 1) {
-      const originTile = this.selectedTile;
-      const targetTile = getTileFromRaycast(event, this.game);
-        if (this.selectedAction == Action.MOVE_UNIT && targetTile.status == TileStatus.TARGET) {
-          this.moveUnit(originTile, targetTile);
-      }
-    }
+  cleanCurrentPath() {
+    this.currentPath = [];
+    this.currentMap.applyStatusToTiles(TileStatus.PATH, TileStatus.REACHABLE)
   }
-  handleKeyDown(event: KeyboardEvent): void {
-    let sunBackground: HTMLElement = document.querySelector(".sun-background") as HTMLElement;
-    let moonBackground: HTMLElement = document.querySelector(".moon-background") as HTMLElement;
-    switch (event.key) {
-      case 'Escape':
-        this.game.quitGame();
-        break;
-      case 'Enter':
-        if (animating) return;
-        let anim;
-        if (!daytime) {
-          anim = [1, 0];
-        } else {
-          anim = [0, 1];
-        }
-        animating = true;
-        let obj = { t: 0 };
-        anime({
-          targets: obj,
-          t: anim,
-          complete: () => {
-            animating = false;
-            daytime = !daytime;
-          },
-          update: () => {
-            this.game.sunLight.intensity = 3.5 * (1 - obj.t);
-            this.game.moonLight.intensity = 3.5 * obj.t;
-
-            this.game.sunLight.translateY(20 * (1 - obj.t));
-            this.game.moonLight.translateY(20 * obj.t);
-
-            sunBackground.style.opacity = Number(1 - obj.t).toString();
-            moonBackground.style.opacity = Number(obj.t).toString();
-          },
-          easing: 'easeInOutSine',
-          duration: 500,
-        })
-        break;
-      default:
-        break;
-    }
+  setPathStatus(hovered: Tile) {
+    this.currentPath = this.currentMap.pathfinding.findPath(this.selectedTile, hovered, 2);
+    this.currentPath.forEach(element => {
+      element.setTileStatus(TileStatus.PATH)
+    });
   }
   spawnUnit(currentMap: WorldMap, team: number) {
     let randomTile = currentMap.getRandomNonObstacleTileForTeam(team);
@@ -150,7 +130,7 @@ export class Controls {
     tile.unit.id = mesh.uuid;
     this.game.scene.add(mesh);
   }
-  moveUnit(originTile: Tile, targetTile: Tile){
+  moveUnit(originTile: Tile, targetTile: Tile) {
     this.game.moveUnitMeshToTile(this.currentPath);
     this.currentMap.moveUnitToTile(originTile, targetTile);
     const attackZone = this.currentMap.pathfinding.getTileNeighbors(targetTile, MOVEMENT, true);
@@ -165,7 +145,7 @@ export class Controls {
     this.processNextUnit();
   }
   processNextUnit() {
-    if (!this.selectedTile || this.currentUnitIndex == this.turnOrder.length - 1){
+    if (!this.selectedTile || this.currentUnitIndex == this.turnOrder.length - 1) {
       this.turnOrder = this.currentMap.getAllTilesWithUnit();
       this.selectedTile = this.turnOrder[0];
       this.currentUnitIndex = 0;
@@ -176,7 +156,7 @@ export class Controls {
     }
     const reachables = this.currentMap.pathfinding.getReachables(this.selectedTile, MOVEMENT, 2);
     const unit = this.selectedTile.unit as Unit;
-    if (this.players.findIndex(player => player.team == unit.team) !== -1){
+    if (this.players.findIndex(player => player.team == unit.team) !== -1) {
       this.selectedTile.setTileStatus(TileStatus.SELECTED);
       reachables.forEach((reachable) => {
         reachable.setTileStatus(TileStatus.REACHABLE);
