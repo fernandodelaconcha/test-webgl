@@ -59,8 +59,7 @@ export class PriorityQueue<T> {
 
   #siftDown(): void;
   #siftDown(size = this.size, node = 0, isGreater = this.#isGreater): void {
-    let loop = true;
-    while (loop) {
+    while (true) {
       const leftNode = (node << 1) + 1;
       const rightNode = leftNode + 1;
 
@@ -68,7 +67,7 @@ export class PriorityQueue<T> {
         (leftNode >= size || isGreater(node, leftNode)) &&
         (rightNode >= size || isGreater(node, rightNode))
       ) {
-        loop = false;
+        break;
       }
 
       const maxChild =
