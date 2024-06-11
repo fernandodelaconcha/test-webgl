@@ -1,4 +1,4 @@
-import { ACESFilmicToneMapping, Color, DirectionalLight, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
+import { ACESFilmicToneMapping, Color, ColorRepresentation, DirectionalLight, MeshPhysicalMaterial, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
 import Tile from "./Tile";
 import { TileStatus } from "../utils/Enums";
 import { Mesh } from "three";
@@ -82,33 +82,34 @@ export class Game {
     this.renderer.render(this.scene, this.camera);
   }
   updateTileColor(object: Mesh) {
+    let material = object.material as MeshPhysicalMaterial;
     switch (object.userData.status) {
       case TileStatus.FOV:
-        object.material.color.set(0x000000);
+        material.color.setHex(0x000000);
         break;
       case TileStatus.TARGET:
-        object.material.color.set(0x0000ff);
+        material.color.setHex(0x0000ff);
         break;
       case TileStatus.ATTACKTARGET:
-        object.material.color.set(0xff0000);
+        material.color.setHex(0xff0000);
         break;
       case TileStatus.ATTACKZONE:
-        object.material.color.set(0xf57373);
+        material.color.setHex(0xf57373);
         break;
       case TileStatus.PATH:
-        object.material.color.set(0xC5E223);
+        material.color.setHex(0xC5E223);
         break;
       case TileStatus.REACHABLE:
-        object.material.color.set(0x03adfc);
+        material.color.setHex(0x03adfc);
         break;
       case TileStatus.SELECTED:
-        object.material.color.set(0x477344);
+        material.color.setHex(0x477344);
         break;
       case TileStatus.HOVERED:
-        object.material.color.set(0xffff00);
+        material.color.setHex(0xffff00);
         break;
       default:
-        object.material.color.set("white");
+        material.color.setHex(0xffffff);
         break;
     }
   }

@@ -1,6 +1,6 @@
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { Game } from "./Game";
-import { MOUSE, Mesh } from "three";
+import { MOUSE, Object3D } from "three";
 import Tile from "./Tile";
 import { Action, TileStatus } from "../utils/Enums";
 import { getTileFromRaycast } from "../utils/Utils";
@@ -75,7 +75,7 @@ export class Controls {
     }
   }
   cleanTileStatesFromScene(): void {
-    this.game.scene.children.forEach((element: Mesh) => {
+    this.game.scene.children.forEach((element: Object3D) => {
       if (element.userData instanceof Tile) {
         if (element.userData.status == TileStatus.HOVERED) {
           element.userData.setTileStatus(TileStatus.NORMAL, true);
