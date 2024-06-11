@@ -1,4 +1,4 @@
-import { Mesh, Raycaster, Vector2, Vector3 } from "three";
+import { Raycaster, Vector2, Vector3 } from "three";
 import Tile from "../classes/Tile";
 import { Game } from "../classes/Game";
 import { MapShape } from "./Enums";
@@ -19,7 +19,7 @@ export function getTileFromRaycast(event: MouseEvent, game: Game): Tile {
   raycaster.setFromCamera(pointer, game.camera);
   const intersects = raycaster.intersectObjects(game.scene.children);
   if (intersects.length > 0 && intersects[0].object && intersects[0].object.name == "Tile") {
-    let tile = intersects[0].object.userData;
+    const tile = intersects[0].object.userData;
     if (tile instanceof Tile) {
       return tile;
     }
@@ -59,8 +59,8 @@ export function tileToPosition(tileX: number, tileY: number, shape: MapShape, si
     col = tileX + (tileY & 1) / 2
     row = tileY
   } else {
-    let x = tileX - size / 2
-    let y = tileY - size / 2
+    const x = tileX - size / 2
+    const y = tileY - size / 2
     col = x + (y & 1) / 2
     row = y
   }

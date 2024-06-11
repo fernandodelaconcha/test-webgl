@@ -9,7 +9,7 @@ export class Pathfinding {
         this.tiles = tiles;
     }
     getTileNeighbors(target: Tile, heightDifference: number, includeObstacles?: boolean): Array<Tile> {
-        let neighbors: Array<Tile> = [];
+        const neighbors: Array<Tile> = [];
         if (target.index.y % 2 == 0) {
             this.tiles.forEach(tile => {
                 if (isNeighborForEvenTile(tile, target) && (includeObstacles || !tile.hasObstacle) && Math.abs(tile.height - target.height) < heightDifference) {
@@ -48,19 +48,19 @@ export class Pathfinding {
         return new Vector2(q, r)
     }
     getCostBetweenTwoTiles(start: Tile, target: Tile): number {
-        let axialStart: Vector2 = this.convertToAxial(start.index);
-        let axialEnd: Vector2 = this.convertToAxial(target.index);
-        let dx: number = Math.abs(axialStart.x - axialEnd.x);
-        let dy: number = Math.abs(axialStart.y - axialEnd.y);
-        let dz: number = Math.abs(axialStart.x + axialStart.y - axialEnd.x - axialEnd.y);
+        const axialStart: Vector2 = this.convertToAxial(start.index);
+        const axialEnd: Vector2 = this.convertToAxial(target.index);
+        const dx: number = Math.abs(axialStart.x - axialEnd.x);
+        const dy: number = Math.abs(axialStart.y - axialEnd.y);
+        const dz: number = Math.abs(axialStart.x + axialStart.y - axialEnd.x - axialEnd.y);
 
         return Math.floor((dx + dy + dz) / 2)
     }
     discoverPath(start: Tile, goal: Tile, heightDifference: number): Map<Tile, Tile | null> {
-        const numberComparator: Comparator<any> = (A: priorityTile, B: priorityTile) => {
+        const numberComparator: Comparator<priorityTile> = (A: priorityTile, B: priorityTile) => {
             return B.priority - A.priority;
         };
-        let frontier = new PriorityQueue(numberComparator);
+        const frontier = new PriorityQueue(numberComparator);
         frontier.add(new priorityTile(start, 0));
         const cameFrom: Map<Tile, Tile | null> = new Map();
         const costSoFar: Map<Tile, number> = new Map();
@@ -68,7 +68,8 @@ export class Pathfinding {
         costSoFar.set(start, 0);
 
         while (frontier.size > 0) {
-            const current: Tile = frontier.poll().tile;
+            const tile = frontier.poll() as priorityTile;
+            const current: Tile = tile.tile;
             if (current == goal)
                 break;
 

@@ -38,7 +38,7 @@ export class Controls {
   handlePointerMove(event: PointerEvent): void {
     this.cleanTileStatesFromScene();
     const hoveredMesh = getTileFromRaycast(event, this.game);
-    let hovered = hoveredMesh as Tile
+    const hovered = hoveredMesh as Tile
     if (!(hovered instanceof Tile)) return;
     this.combatSystem.cleanCurrentPath()
     if (hovered.status == TileStatus.REACHABLE || hovered.status == TileStatus.PATH) {

@@ -39,9 +39,9 @@ export class Game {
   }
   addLight(color: string, intensity: number, position: Vector3): DirectionalLight {
     const light = new DirectionalLight(new Color(color).convertSRGBToLinear(), intensity);
-    light.translateZ(10);
-    light.translateY(20);
-    light.translateZ(10);
+    light.translateX(position.x);
+    light.translateY(position.y);
+    light.translateZ(position.z);
     light.castShadow = true;
     light.shadow.mapSize.width = 512;
     light.shadow.mapSize.height = 512;

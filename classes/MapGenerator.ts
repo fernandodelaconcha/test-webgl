@@ -1,7 +1,7 @@
 import { createNoise2D } from 'simplex-noise';
 import Tile from './Tile';
 import WorldMap from './WorldMap';
-import { Vector2, CylinderGeometry, Color, SphereGeometry, Mesh, MeshPhysicalMaterial, Scene, DoubleSide, TextureLoader, MeshStandardMaterial, MeshBasicMaterial, Texture, BoxGeometry, BufferGeometry, Vector3 } from 'three';
+import { Vector2, CylinderGeometry, Color, SphereGeometry, Mesh, MeshPhysicalMaterial, Scene, DoubleSide, TextureLoader, MeshStandardMaterial, MeshBasicMaterial, Texture, BoxGeometry, BufferGeometry } from 'three';
 import { BufferGeometryUtils } from 'three/examples/jsm/Addons.js';
 import Alea from 'alea';
 import { MapShape, TerrainType, TextureType } from '../utils/Enums';
@@ -34,7 +34,7 @@ export default class MapGenerator {
     const start = (shape == MapShape.CIRCLE ? 1 - size : 0);
     for (let i = start; i < size; i++) {
       for (let j = start; j < size; j++) {
-        let position = tileToPosition(i, j, shape, size);
+        const position = tileToPosition(i, j, shape, size);
         if (shape == MapShape.CIRCLE && position.length() > size) continue;
         else if (shape == MapShape.BOX && i >= size && j >= size) continue;
         let noise = (noise2D(i * 0.1, j * 0.1) + 1) * 0.5;
@@ -62,9 +62,9 @@ export default class MapGenerator {
     return map;
   }
   createTile(tile: Tile, material: MeshPhysicalMaterial, position: Vector2): Mesh {
-    let geo = new CylinderGeometry(1, 1, tile.height, 6, 1, false);
+    const geo = new CylinderGeometry(1, 1, tile.height, 6, 1, false);
 
-    let mesh = new Mesh(geo, material as unknown as MeshBasicMaterial);
+    const mesh = new Mesh(geo, material as unknown as MeshBasicMaterial);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     mesh.name = 'Tile';
@@ -75,8 +75,8 @@ export default class MapGenerator {
     return mesh;
   }
   createMaterial(textureType: TextureType): MeshPhysicalMaterial {
-    let map = this.getTextureFromTextureType(textureType);
-    let material = new MeshPhysicalMaterial({
+    const map = this.getTextureFromTextureType(textureType);
+    const material = new MeshPhysicalMaterial({
       envMap: this.envmap,
       envMapIntensity: 0.135,
       flatShading: true,
@@ -87,7 +87,7 @@ export default class MapGenerator {
   }
   createSea(shape: MapShape, size: number, seaLevel: number): void {
     if (seaLevel == 0) return
-    let texture = this.getTextureFromTextureType(TextureType.WATER_TEXTURE);
+    const texture = this.getTextureFromTextureType(TextureType.WATER_TEXTURE);
     let geo: BufferGeometry;
     if (shape == MapShape.CIRCLE) {
       geo = new CylinderGeometry(size + 1, size + 1, seaLevel - .1, 50);
@@ -96,7 +96,7 @@ export default class MapGenerator {
       geo = new BoxGeometry(size * 2 - 2, seaLevel - .1, size * 2 - 6);
       geo.translate(-.5, -.5, -.5)
     }
-    let seaMesh: Mesh = new Mesh(
+    const seaMesh: Mesh = new Mesh(
       geo,
       new MeshPhysicalMaterial({
         envMap: this.envmap,
@@ -126,7 +126,7 @@ export default class MapGenerator {
       geo.translate(-.5, -1.5, -.5)
     }
     if (seaLevel == 0) geo.translate(0, 1, 0)
-    let mapContainer = new Mesh(
+    const mapContainer = new Mesh(
       geo,
       new MeshPhysicalMaterial({
         envMap: this.envmap,
@@ -148,7 +148,7 @@ export default class MapGenerator {
       geo = new BoxGeometry(size * 2 - 1, 1, size * 2 - 5);
       geo.translate(-.5, -(seaLevel + 2.5 - seaLevel / 2), -.5)
     }
-    let mapFloor = new Mesh(
+    const mapFloor = new Mesh(
       geo,
       new MeshPhysicalMaterial({
         envMap: this.envmap,
@@ -185,7 +185,7 @@ export default class MapGenerator {
     this.scene.add(mesh);
   }
   createStone(height: number, position: Vector2, count: number): void {
-    let geos: Array<SphereGeometry> = [];
+    const geos: Array<SphereGeometry> = [];
     for (let i = 0; i < count; i++) {
       const geo1 = new SphereGeometry(Math.random() * .4 + .3, 7, 7, 0, Math.PI * 2, 0, Math.PI / 2);
       const displacementX = Math.random() * .5 * (Math.round(Math.random()) ? 1 : -1);
@@ -285,7 +285,7 @@ export default class MapGenerator {
     }
   }
   populateWorld(textureType: TextureType, tile: Tile, height: number, position: Vector2): void {
-    let random = Math.random();
+    const random = Math.random();
     if (random > 0.8) {
       switch (textureType) {
         case (TextureType.SAND_TEXTURE):

@@ -7,8 +7,8 @@ let animating = false;
 export class DayNightControls {
     
     animate(game: Game): void {
-        let sunBackground: HTMLElement = document.querySelector(".sun-background") as HTMLElement;
-        let moonBackground: HTMLElement = document.querySelector(".moon-background") as HTMLElement;
+        const sunBackground: HTMLElement = document.querySelector(".sun-background") as HTMLElement;
+        const moonBackground: HTMLElement = document.querySelector(".moon-background") as HTMLElement;
         if (animating) return;
         let anim: Array<number>;
         if (!daytime) {
@@ -17,7 +17,7 @@ export class DayNightControls {
             anim = [0, 1];
         }
         animating = true;
-        let obj = { t: 0 };
+        const obj = { t: 0 };
         anime({
             targets: obj,
             t: anim,

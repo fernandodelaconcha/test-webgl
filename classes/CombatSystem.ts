@@ -56,10 +56,10 @@ export class CombatSystem {
         tile.unit = new Unit(this.currentMap, team, 'unit', 30, 2);
         tile.unit.tile = tile;
         tile.hasObstacle = true;
-        let geo = new SphereGeometry(.5);
+        const geo = new SphereGeometry(.5);
 
         const color = getColorByTeamIndex(team);
-        let mesh = new Mesh(geo, new MeshBasicMaterial({ color }));
+        const mesh = new Mesh(geo, new MeshBasicMaterial({ color }));
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         mesh.name = 'Tile';
