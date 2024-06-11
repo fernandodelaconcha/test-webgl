@@ -27,6 +27,8 @@ export enum TileStatus {
     REACHABLE,
     PATH,
     SELECTED,
+    ATTACKZONE,
+    ATTACKTARGET,
     TARGET,
     FOV
 }
@@ -34,7 +36,8 @@ export enum TileStatus {
 export enum Action {
     NONE,
     SELECT_TILE,
-    MOVE_UNIT
+    MOVE_UNIT,
+    ATTACK
 }
 
 export enum AIProfile {

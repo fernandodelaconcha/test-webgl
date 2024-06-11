@@ -89,6 +89,12 @@ export class Game {
       case TileStatus.TARGET:
         object.material.color.set(0x0000ff);
         break;
+      case TileStatus.ATTACKTARGET:
+        object.material.color.set(0xff0000);
+        break;
+      case TileStatus.ATTACKZONE:
+        object.material.color.set(0xf57373);
+        break;
       case TileStatus.PATH:
         object.material.color.set(0xC5E223);
         break;
@@ -96,7 +102,7 @@ export class Game {
         object.material.color.set(0x03adfc);
         break;
       case TileStatus.SELECTED:
-        object.material.color.set(0xff0000);
+        object.material.color.set(0x477344);
         break;
       case TileStatus.HOVERED:
         object.material.color.set(0xffff00);
@@ -113,7 +119,7 @@ export class Game {
     object.translateX(pendingMovement.start.x / 6);
     object.translateY(pendingMovement.start.y / 6);
     object.translateZ(pendingMovement.start.z / 6);
-    
+
     if (pendingMovement.alpha < 1) {
       pendingMovement.alpha += delta / 100;
     } else {

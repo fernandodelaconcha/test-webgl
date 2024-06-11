@@ -17,7 +17,7 @@ export class Unit {
         this.type = type;
         this.maxHp = maxHp;
         this.currentHp = maxHp;
-        this.AI = new UnitAI(map, AIProfile.RANGED);
+        this.AI = new UnitAI(map, AIProfile.AGGRESIVE);
         this.AI.unit = this;
         this.verticalMovement = verticalMovement
     }

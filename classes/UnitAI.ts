@@ -7,7 +7,7 @@ export class UnitAI {
     profile: AIProfile
     unit: Unit
     map: WorldMap;
-    preferredRange: number;
+    preferredRange: number = 1;
     constructor(map: WorldMap, profile: AIProfile = AIProfile.AGGRESIVE) {
         this.profile = profile;
         this.map = map;
@@ -27,7 +27,7 @@ export class UnitAI {
         reachables.forEach(reachable => {
             targets.forEach(target => {
                 const distance = this.map.pathfinding.getCostBetweenTwoTiles(reachable, target);
-                if (distance < minDistance && distance > this.preferredRange){
+                if (distance < minDistance && distance >= this.preferredRange){
                     minDistance = distance;
                     closestIndex = reachable;
                 }

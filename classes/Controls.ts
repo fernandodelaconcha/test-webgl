@@ -7,6 +7,7 @@ import { getTileFromRaycast } from "../utils/Utils";
 import WorldMap from "./WorldMap";
 import { DayNightControls } from "./DayNightControls";
 import { CombatSystem } from "./CombatSystem";
+import { Unit } from "./Unit";
 
 export class Controls {
   game: Game;
@@ -43,6 +44,8 @@ export class Controls {
     if (hovered.status == TileStatus.REACHABLE || hovered.status == TileStatus.PATH) {
       hovered.setTileStatus(TileStatus.TARGET);
       this.combatSystem.setPathStatus(hovered);
+    } else if (hovered.status == TileStatus.ATTACKZONE) {
+      hovered.setTileStatus(TileStatus.ATTACKTARGET);
     } else {
       hovered.setTileStatus(TileStatus.HOVERED);
     }
@@ -53,6 +56,9 @@ export class Controls {
       const targetTile = getTileFromRaycast(event, this.game);
       if (this.combatSystem.selectedAction == Action.MOVE_UNIT && targetTile.status == TileStatus.TARGET) {
         this.combatSystem.moveUnit(originTile, targetTile);
+        this.combatSystem.unitGetAttackRange(targetTile.unit as Unit);
+      } else if (this.combatSystem.selectedAction == Action.ATTACK && targetTile.status == TileStatus.ATTACKTARGET) {
+        this.combatSystem.unitAttack(originTile.unit as Unit, targetTile.unit as Unit);
       }
     }
   }
@@ -75,6 +81,8 @@ export class Controls {
           element.userData.setTileStatus(TileStatus.NORMAL, true);
         } else if (element.userData.status == TileStatus.TARGET) {
           element.userData.setTileStatus(TileStatus.REACHABLE, true);
+        } else if (element.userData.status == TileStatus.ATTACKTARGET) {
+          element.userData.setTileStatus(TileStatus.ATTACKZONE, true);
         }
       }
     })
