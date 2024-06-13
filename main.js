@@ -11,7 +11,7 @@ import { getRandomIntInRange } from "./utils/Utils";
 const FPS = 30;
 const INTERVAL = 1000 / FPS;
 
-let game = new Game(document.querySelector('#bg'), innerWidth, innerHeight * .9);
+let game = new Game(document.querySelector('#bg'), innerWidth / 1.5, innerHeight * .9 / 1.2);
 let controls = new Controls(game);
 
 const sizeInput = document.querySelector("#size");

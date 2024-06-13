@@ -7,8 +7,7 @@ let animating = false;
 export class DayNightControls {
     
     animate(game: Game): void {
-        const sunBackground: HTMLElement = document.querySelector(".sun-background") as HTMLElement;
-        const moonBackground: HTMLElement = document.querySelector(".moon-background") as HTMLElement;
+        const scenario: HTMLElement = document.querySelector(".scenario") as HTMLElement;
         if (animating) return;
         let anim: Array<number>;
         if (!daytime) {
@@ -31,9 +30,7 @@ export class DayNightControls {
 
                 game.sunLight.translateY(20 * (1 - obj.t));
                 game.moonLight.translateY(20 * obj.t);
-
-                sunBackground.style.opacity = Number(1 - obj.t).toString();
-                moonBackground.style.opacity = Number(obj.t).toString();
+                scenario.style.background = !daytime ? 'linear-gradient(45deg, rgb(255 219 158), rgb(253 243 220))' : 'linear-gradient(313deg, #0b1a2b 33%, #3a6291 111%)';
             },
             easing: 'easeInOutSine',
             duration: 500,
