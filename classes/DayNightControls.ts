@@ -5,9 +5,9 @@ let daytime = true;
 let animating = false;
 
 export class DayNightControls {
-    
+
     animate(game: Game): void {
-        const scenario: HTMLElement = document.querySelector(".scenario") as HTMLElement;
+        const scenario: HTMLElement = document.querySelector("#bg") as HTMLElement;
         if (animating) return;
         let anim: Array<number>;
         if (!daytime) {
@@ -30,7 +30,9 @@ export class DayNightControls {
 
                 game.sunLight.translateY(20 * (1 - obj.t));
                 game.moonLight.translateY(20 * obj.t);
-                scenario.style.background = !daytime ? 'linear-gradient(45deg, rgb(255 219 158), rgb(253 243 220))' : 'linear-gradient(313deg, #0b1a2b 33%, #3a6291 111%)';
+                const color: string = `color-mix(in srgb, #0b1a2b ${obj.t * 100}% , rgb(255 219 158))`;
+                const secondColor: string = `color-mix(in srgb, #3a6291 ${obj.t * 100}% , rgb(253 243 220))`;
+                scenario.style.background = `linear-gradient(45deg, ${color}, ${secondColor})`;
             },
             easing: 'easeInOutSine',
             duration: 500,
