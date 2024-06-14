@@ -21,6 +21,10 @@ export class Controls {
     this.orbitControls = new OrbitControls(game.camera, game.renderer.domElement);
     this.orbitControls.dampingFactor = 0.05;
     this.orbitControls.enableDamping = true;
+    this.orbitControls.minDistance = 5;
+    this.orbitControls.maxDistance = 60;
+    this.orbitControls.maxPolarAngle = Math.PI / 2 - 0.05;
+    this.orbitControls.minPolarAngle = Math.PI / 4;
     this.orbitControls.listenToKeyEvents(window)
     this.orbitControls.mouseButtons = {
       LEFT: 0,
@@ -40,6 +44,9 @@ export class Controls {
     const hoveredMesh = getTileFromRaycast(event, this.game);
     const hovered = hoveredMesh as Tile
     if (!(hovered instanceof Tile)) return;
+    if (hovered.unit) {
+      hovered.unit.displayUnitOnInterface();
+    }
     this.combatSystem.cleanCurrentPath()
     if (hovered.status == TileStatus.REACHABLE || hovered.status == TileStatus.PATH) {
       hovered.setTileStatus(TileStatus.TARGET);
