@@ -1,12 +1,17 @@
 import { Raycaster, Vector2, Vector3 } from "three";
 import Tile from "../classes/Tile";
 import { Game } from "../classes/Game";
-import { MapShape } from "./Enums";
+import { MapShape, UnitType } from "./Enums";
 
 export interface pendingMovement {
   path: Vector3,
   start: Vector3,
   alpha: number
+}
+
+export interface MeshToImport {
+  type: UnitType,
+  path: string,
 }
 
 export function getTileFromRaycast(event: MouseEvent, game: Game): Tile {
@@ -106,8 +111,8 @@ export function getGridPlacementByTeamIndex(teamIndex: number, size: number): Ve
       j = getRandomIntInRange(0, size / 4);
       break;
     case 3:
-      i = getRandomIntInRange(size / 2, size *3/ 4);
-      j = getRandomIntInRange(size / 2, size *3/ 4);
+      i = getRandomIntInRange(size / 2, size * 3 / 4);
+      j = getRandomIntInRange(size / 2, size * 3 / 4);
       break;
     case 4:
       i = getRandomIntInRange(0, size / 4);
@@ -120,3 +125,9 @@ export function getGridPlacementByTeamIndex(teamIndex: number, size: number): Ve
   }
   return new Vector2(i, j);
 }
+
+export const meshesToImport: Array<MeshToImport> = [
+  { type: UnitType.FROG, path: 'assets/meshes/toadder.glb' },
+  { type: UnitType.HUMAN, path: 'assets/meshes/cartoon_character.glb' },
+  { type: UnitType.CHILD, path: 'assets/meshes/child.glb' }
+];

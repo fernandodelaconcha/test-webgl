@@ -12,12 +12,12 @@ const DIRT_CONSTANT = .7;
 const GRASS_CONSTANT = .5;
 const SAND_CONSTANT = .3;
 
-const STONE_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/stone.png");
-const DIRT_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/dirt.png");
-const GRASS_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/grass.jpg");
-const SAND_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/sand.jpg");
-const DIRT2_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/dirt2.jpg");
-const WATER_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/water.jpg");
+const STONE_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/textures/stone.png");
+const DIRT_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/textures/dirt.png");
+const GRASS_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/textures/grass.jpg");
+const SAND_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/textures/sand.jpg");
+const DIRT2_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/textures/dirt2.jpg");
+const WATER_TEXTURE: Texture = await new TextureLoader().loadAsync("assets/textures/water.jpg");
 export default class MapGenerator {
   envmap: Texture;
   scene: Scene;

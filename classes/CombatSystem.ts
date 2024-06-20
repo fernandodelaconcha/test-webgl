@@ -1,11 +1,12 @@
 import { Game } from "./Game";
-import { Mesh, MeshBasicMaterial, SphereGeometry, Vector2, Vector3 } from "three";
+import { BufferGeometry, Vector2, Vector3 } from "three";
 import Tile from "./Tile";
-import { Action, TileStatus } from "../utils/Enums";
-import { getColorByTeamIndex } from "../utils/Utils";
+import { Action, TileStatus, UnitType } from "../utils/Enums";
 import WorldMap from "./WorldMap";
 import { Player } from "./Player";
 import { Unit } from "./Unit";
+import { GLTFLoader } from "three/examples/jsm/Addons.js";
+import { meshesToImport } from "../utils/Utils";
 
 //move with unit fatigue
 const MOVEMENT = 4;
@@ -19,9 +20,12 @@ export class CombatSystem {
     selectedAction: Action = Action.SELECT_TILE;
     currentPath: Array<Tile>;
     currentUnitIndex: number;
+    geometries: Map<UnitType, BufferGeometry>
 
     constructor(game: Game) {
         this.game = game;
+        this.geometries = new Map();
+        this.instantiateMeshes()
     }
     setMap(currentMap: WorldMap): void {
         this.currentMap = currentMap;
@@ -46,6 +50,23 @@ export class CombatSystem {
             element.setTileStatus(TileStatus.PATH)
         });
     }
+    instantiateMeshes() {
+        const loader = new GLTFLoader();
+        meshesToImport.forEach(mesh => {
+            loader.load(
+                mesh.path,
+                (gltf) => {
+                    this.geometries.set(mesh.type, gltf.scenes[0].children[0]['geometry'])
+                },
+                function (xhr) {
+                    console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                function (error) {
+                    console.log('An error happened', error);
+                }
+            );
+        })
+    }
     spawnUnit(currentMap: WorldMap, team: number) {
         let randomTile = currentMap.getRandomNonObstacleTileForTeam(team);
         if (randomTile.height == -99) randomTile = currentMap.getRandomNonObstacleTileForTeam(team);
@@ -53,20 +74,12 @@ export class CombatSystem {
         this.createUnit(randomTile, team, new Vector2(position.x, position.z))
     }
     createUnit(tile: Tile, team: number, position: Vector2): void {
-        tile.unit = new Unit(this.currentMap, team, 'unit', 30, 2);
+        tile.unit = new Unit(this.currentMap, team, UnitType.CHILD, 30, 2);
         tile.unit.tile = tile;
         tile.hasObstacle = true;
-        const geo = new SphereGeometry(.5);
-
-        const color = getColorByTeamIndex(team);
-        const mesh = new Mesh(geo, new MeshBasicMaterial({ color }));
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        mesh.name = 'Tile';
-        mesh['position'].set(position.x, tile.height + .5, position.y);
-        mesh.userData = {
-            pendingMovements: []
-        }
+        const geometry = this.geometries.get(tile.unit.type);
+        if (!geometry) return;
+        const mesh = tile.unit.createMesh(geometry, position);
         tile.unit.id = mesh.uuid;
         this.game.scene.add(mesh);
     }

@@ -36,7 +36,7 @@ button.addEventListener('click', () => {
 
 //world generation
 let pmrem = new PMREMGenerator(game.renderer);
-let envmapTexture = await new RGBELoader().setDataType(THREE.FloatType).loadAsync("assets/envmap.hdr");
+let envmapTexture = await new RGBELoader().setDataType(THREE.FloatType).loadAsync("assets/textures/envmap.hdr");
 const envmap = pmrem.fromEquirectangular(envmapTexture).texture
 const mapGenerator = new MapGenerator(envmap, game.scene);
 //plateau

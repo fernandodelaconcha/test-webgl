@@ -46,3 +46,9 @@ export enum AIProfile {
     SUPPORT,
     COWARD
 }
+
+export enum UnitType {
+    HUMAN,
+    CHILD,
+    FROG,
+}
