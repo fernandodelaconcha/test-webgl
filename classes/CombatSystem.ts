@@ -1,11 +1,13 @@
 import { Game } from "./Game";
-import { BufferGeometry, Vector2, Vector3 } from "three";
+import { BufferGeometry, Vector2, Vector3, Object3D, BoxGeometry } from "three";
 import Tile from "./Tile";
 import { Action, TileStatus, UnitType } from "../utils/Enums";
 import WorldMap from "./WorldMap";
 import { Player } from "./Player";
 import { Unit } from "./Unit";
 import { GLTFLoader } from "three/examples/jsm/Addons.js";
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+
 import { meshesToImport } from "../utils/Utils";
 
 //move with unit fatigue
@@ -25,9 +27,11 @@ export class CombatSystem {
     constructor(game: Game) {
         this.game = game;
         this.geometries = new Map();
-        this.instantiateMeshes()
     }
-    setMap(currentMap: WorldMap): void {
+    async setMap(currentMap: WorldMap): void {
+        // GLTFLoader is asynchronous. Either you pass callbacks around, or one uses loadAsync + async/await.
+        // Here the second approach is used and await until everything is loaded
+        await this.instantiateMeshes(); 
         this.currentMap = currentMap;
 
         this.players.push(new Player('heroes', 0));
@@ -50,22 +54,26 @@ export class CombatSystem {
             element.setTileStatus(TileStatus.PATH)
         });
     }
-    instantiateMeshes() {
+    async instantiateMeshes() {
         const loader = new GLTFLoader();
-        meshesToImport.forEach(mesh => {
-            loader.load(
-                mesh.path,
-                (gltf) => {
-                    this.geometries.set(mesh.type, gltf.scenes[0].children[0]['geometry'])
-                },
-                function (xhr) {
-                    console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-                },
-                function (error) {
-                    console.log('An error happened', error);
-                }
-            );
-        })
+        // Make explicit the scope "this" refers to (inside the arrow function + Promise (async) is not clear what "this" refers to) 
+        const scope = this;
+        // For each mesh, create a Promise (with async), inside it wait until loaded the file, and await for all the meshes to be loaded
+        await Promise.all(meshesToImport.map(async (mesh) => {
+            const gltf = await loader.loadAsync(mesh.path, (xhr) => { console.log((xhr.loaded / xhr.total * 100) + '% loaded'); });
+            // Collect all the per-file BufferGeometries by traversing all the scene(s) in the file, and then  
+            // merge them into one single BufferGeometry that is stored in the geometries map
+            const bufferGeoms: BufferGeometry[] = [];
+            const traverseCb = (obj: Object3D) => { 
+                                               if(obj.type === 'Mesh' && obj.geometry.isBufferGeometry) 
+                                                  bufferGeoms.push(obj.geometry);
+                                             };
+            gltf.scenes.forEach((scene) => scene.traverse((obj) => traverseCb(obj)));
+            // console.log(bufferGeoms); // Here you will see each file has multiple BufferGeometries in it
+            const merged = BufferGeometryUtils.mergeGeometries(bufferGeoms, false);
+            // console.log('Merged BufferGeometry: ', merged);
+            scope.geometries.set(mesh.type, merged);
+        }));
     }
     spawnUnit(currentMap: WorldMap, team: number) {
         let randomTile = currentMap.getRandomNonObstacleTileForTeam(team);
