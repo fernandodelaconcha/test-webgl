@@ -49,6 +49,7 @@ export enum AIProfile {
 
 export enum UnitType {
     HUMAN,
-    CHILD,
+    DRAGON,
+    SKELETON,
     FROG,
 }

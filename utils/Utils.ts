@@ -128,6 +128,7 @@ export function getGridPlacementByTeamIndex(teamIndex: number, size: number): Ve
 
 export const meshesToImport: Array<MeshToImport> = [
   { type: UnitType.FROG, path: 'assets/meshes/toadder.glb' },
-  { type: UnitType.HUMAN, path: 'assets/meshes/cartoon_character.glb' },
-  { type: UnitType.CHILD, path: 'assets/meshes/child.glb' }
+  { type: UnitType.HUMAN, path: 'assets/meshes/human.glb' },
+  { type: UnitType.DRAGON, path: 'assets/meshes/dragon.glb' },
+  { type: UnitType.SKELETON, path: 'assets/meshes/skeleton.glb' }
 ];

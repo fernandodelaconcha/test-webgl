@@ -1,4 +1,4 @@
-import { ACESFilmicToneMapping, Color, ColorRepresentation, DirectionalLight, MeshPhysicalMaterial, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
+import { ACESFilmicToneMapping, Color, DirectionalLight, MeshPhysicalMaterial, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
 import Tile from "./Tile";
 import { TileStatus } from "../utils/Enums";
 import { Mesh } from "three";
@@ -82,7 +82,7 @@ export class Game {
     this.renderer.render(this.scene, this.camera);
   }
   updateTileColor(object: Mesh) {
-    let material = object.material as MeshPhysicalMaterial;
+    const material = object.material as MeshPhysicalMaterial;
     switch (object.userData.status) {
       case TileStatus.FOV:
         material.color.setHex(0x000000);

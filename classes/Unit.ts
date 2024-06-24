@@ -1,4 +1,4 @@
-import { BufferGeometry, Mesh, MeshBasicMaterial, SphereGeometry, Vector2 } from "three";
+import { BufferGeometry, Mesh, MeshBasicMaterial, Vector2 } from "three";
 import { getColorByTeamIndex } from "../utils/Utils";
 import { AIProfile, UnitType } from "../utils/Enums";
 import Tile from "./Tile";
@@ -30,7 +30,7 @@ export class Unit {
         const name: HTMLElement = document.querySelector("#name") as HTMLElement;
         const health: HTMLElement = document.querySelector("#health") as HTMLElement;
         const attack: HTMLElement = document.querySelector("#attack") as HTMLElement;
-        const items: HTMLElement = document.querySelector("#items") as HTMLElement;
+        //const items: HTMLElement = document.querySelector("#items") as HTMLElement;
 
         name.innerText = UnitType[this.type].toString();
         health.innerText = `${this.currentHp} / ${this.maxHp}`;
@@ -43,7 +43,7 @@ export class Unit {
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         mesh.name = 'Tile';
-        mesh['position'].set(position.x, this.tile.height + .5, position.y);
+        mesh['position'].set(position.x, this.tile.height, position.y);
         mesh.userData = {
             pendingMovements: []
         }
