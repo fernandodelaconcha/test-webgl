@@ -28,7 +28,7 @@ export class CombatSystem {
         this.game = game;
         this.geometries = new Map();
     }
-    async setMap(currentMap: WorldMap): void {
+    async setMap(currentMap: WorldMap): Promise<void> {
         // GLTFLoader is asynchronous. Either you pass callbacks around, or one uses loadAsync + async/await.
         // Here the second approach is used and await until everything is loaded
         await this.instantiateMeshes(); 
@@ -54,7 +54,7 @@ export class CombatSystem {
             element.setTileStatus(TileStatus.PATH)
         });
     }
-    async instantiateMeshes() {
+    async instantiateMeshes(): Promise<void> {
         const loader = new GLTFLoader();
         // Make explicit the scope "this" refers to (inside the arrow function + Promise (async) is not clear what "this" refers to) 
         const scope = this;
@@ -75,7 +75,7 @@ export class CombatSystem {
             scope.geometries.set(mesh.type, merged);
         }));
     }
-    spawnUnit(currentMap: WorldMap, team: number) {
+    spawnUnit(currentMap: WorldMap, team: number): void {
         let randomTile = currentMap.getRandomNonObstacleTileForTeam(team);
         if (randomTile.height == -99) randomTile = currentMap.getRandomNonObstacleTileForTeam(team);
         const position: Vector3 = this.game.getMeshById(randomTile.id)['position']
@@ -91,14 +91,14 @@ export class CombatSystem {
         tile.unit.id = mesh.uuid;
         this.game.scene.add(mesh);
     }
-    moveUnit(originTile: Tile, targetTile: Tile) {
+    moveUnit(originTile: Tile, targetTile: Tile): void {
         this.game.moveUnitMeshToTile(this.currentPath);
         this.currentMap.moveUnitToTile(originTile, targetTile);
         this.currentMap.clearStatusFromAllTiles();
         this.selectedAction = Action.SELECT_TILE;
         this.selectedTile = targetTile;
     }
-    unitCombatTurn() {
+    unitCombatTurn(): void {
         this.setCurrentUnitAndIndex();
         const unit = this.selectedTile.unit as Unit;
         if (!(unit instanceof Unit)) {
@@ -118,7 +118,7 @@ export class CombatSystem {
             this.selectedTile = this.turnOrder[this.currentUnitIndex]
         }
     }
-    unitMovement(unit: Unit, reachables: Array<Tile>) {
+    unitMovement(unit: Unit, reachables: Array<Tile>): void {
         if (this.players.findIndex(player => player.team == unit.team) !== -1) {
             this.selectedTile.setTileStatus(TileStatus.SELECTED);
             reachables.forEach((reachable) => {
@@ -137,7 +137,7 @@ export class CombatSystem {
             }, 1000);
         }
     }
-    unitGetAttackRange(unit: Unit) {
+    unitGetAttackRange(unit: Unit): void {
         if (this.players.findIndex(player => player.team == unit.team) !== -1) {
             this.currentMap.pathfinding.getTileNeighbors(unit.tile, unit.verticalMovement, true).forEach((reachable) => {
                 reachable.setTileStatus(TileStatus.ATTACKZONE);
@@ -145,7 +145,7 @@ export class CombatSystem {
             this.selectedAction = Action.ATTACK;
         }
     }
-    unitAttack(origin: Unit, target: Unit) {
+    unitAttack(origin: Unit, target: Unit): void {
         if (origin && target) {
             this.game.cleanUnitMesh(target.id as string);
             this.currentMap.removeUnit(target.tile);
