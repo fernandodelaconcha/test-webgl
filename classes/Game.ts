@@ -116,17 +116,21 @@ export class Game {
   updateUnitMovement(object: Mesh, delta: number) {
     const pendingMovements: Array<pendingMovement> = object.userData.pendingMovements
     const pendingMovement = pendingMovements[0];
+    object.lookAt(pendingMovement.target)
+
     pendingMovement.start.lerp(pendingMovement.path, pendingMovement.alpha)
-    object.translateX(pendingMovement.start.x / 6);
-    object.translateY(pendingMovement.start.y / 6);
-    object.translateZ(pendingMovement.start.z / 6);
+    object.position.x += (pendingMovement.start.x / 6);
+    object.position.y += (pendingMovement.start.y / 6);
+    object.position.z += (pendingMovement.start.z / 6);
 
     if (pendingMovement.alpha < 1) {
       pendingMovement.alpha += delta / 100;
     } else {
-      object.translateX(pendingMovement.start.x - pendingMovement.path.x);
-      object.translateY(pendingMovement.start.y - pendingMovement.path.y);
-      object.translateZ(pendingMovement.start.z - pendingMovement.path.z);
+      
+      object.position.x += (pendingMovement.start.x - pendingMovement.path.x)
+      object.position.y += (pendingMovement.start.y - pendingMovement.path.y)
+      object.position.z += (pendingMovement.start.z - pendingMovement.path.z)
+
       object.userData.pendingMovements.shift();
     }
   }
@@ -149,7 +153,8 @@ export class Game {
     unitMesh.userData.pendingMovements.push({
       path: targetIndex.sub(originIndex),
       start: new Vector3(),
-      alpha: 0
+      alpha: 0,
+      target: new Vector3(targetTileMesh['position'].x, targetTileMesh['position'].y * 2, targetTileMesh['position'].z)
     })
   }
   cleanUnitMesh(id: string): void {

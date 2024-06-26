@@ -45,7 +45,7 @@ export class CombatSystem {
     }
     cleanCurrentPath() {
         this.currentPath = [];
-        this.currentMap.applyStatusToTiles(TileStatus.PATH, TileStatus.REACHABLE)
+        this.currentMap?.applyStatusToTiles(TileStatus.PATH, TileStatus.REACHABLE)
     }
     setPathStatus(hovered: Tile) {
         const unit = this.selectedTile.unit as Unit;

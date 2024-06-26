@@ -6,7 +6,8 @@ import { MapShape, UnitType } from "./Enums";
 export interface pendingMovement {
   path: Vector3,
   start: Vector3,
-  alpha: number
+  alpha: number,
+  target: Vector3
 }
 
 export interface MeshToImport {
