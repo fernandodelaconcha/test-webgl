@@ -52,4 +52,5 @@ export enum UnitType {
     DRAGON,
     SKELETON,
     FROG,
+    WOMEN
 }

@@ -65,8 +65,9 @@ export class CombatSystem {
             // merge them into one single BufferGeometry that is stored in the geometries map
             const bufferGeoms: BufferGeometry[] = [];
             const traverseCb = (obj: Object3D) => {
-                if (obj.type === 'Mesh' && obj['geometry'].isBufferGeometry)
+                if (obj['geometry'] && obj['geometry'].isBufferGeometry){
                     bufferGeoms.push(obj['geometry']);
+                }
             };
             gltf.scenes.forEach((scene) => scene.traverse((obj) => traverseCb(obj)));
             // console.log(bufferGeoms); // Here you will see each file has multiple BufferGeometries in it

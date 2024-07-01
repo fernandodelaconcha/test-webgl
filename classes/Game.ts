@@ -71,6 +71,7 @@ export class Game {
     return this.scene.getObjectByProperty('uuid', id) as Mesh
   }
   render(delta: number): void {
+    delta /= 100;
     this.scene.children.forEach((object) => {
       if (!(object instanceof Mesh)) return;
       if (object.userData instanceof Tile) {
@@ -124,7 +125,7 @@ export class Game {
     object.position.z += (pendingMovement.start.z / 6);
 
     if (pendingMovement.alpha < 1) {
-      pendingMovement.alpha += delta / 100;
+      pendingMovement.alpha += delta;
     } else {
       
       object.position.x += (pendingMovement.start.x - pendingMovement.path.x)
