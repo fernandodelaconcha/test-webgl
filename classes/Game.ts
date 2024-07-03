@@ -1,4 +1,4 @@
-import { ACESFilmicToneMapping, Color, DirectionalLight, MeshPhysicalMaterial, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
+import { ACESFilmicToneMapping, AnimationMixer, Color, DirectionalLight, MeshPhysicalMaterial, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
 import Tile from "./Tile";
 import { TileStatus } from "../utils/Enums";
 import { Mesh } from "three";
@@ -14,6 +14,7 @@ export class Game {
   moonLight: DirectionalLight;
   isGameOver: boolean;
   players: Array<Player> = [];
+  mixer: AnimationMixer;
 
   constructor(canvas: HTMLElement, innerWidth: number, innerHeight: number, near: number = .1, far: number = 1000) {
     this.scene = new Scene();
@@ -71,12 +72,14 @@ export class Game {
   }
   render(delta: number): void {
     delta /= 100;
+    if (this.mixer) {
+        this.mixer.update(delta)
+    }
     this.scene.children.forEach((object) => {
-      if (!(object instanceof Mesh)) return;
       if (object.userData instanceof Tile) {
-        this.updateTileColor(object);
+        this.updateTileColor(object as Mesh);
       } else if (object.userData instanceof Unit) {
-        object.userData.render(object, delta);
+        object.userData.render(object as Mesh, delta);
       }
     });
     this.renderer.render(this.scene, this.camera);

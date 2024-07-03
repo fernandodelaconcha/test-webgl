@@ -1,14 +1,13 @@
 import { Game } from "./Game";
-import { BufferGeometry, Vector2, Vector3, Object3D, Mesh } from "three";
+import { Vector3, AnimationClip, AnimationMixer, MeshBasicMaterial, Clock } from "three";
 import Tile from "./Tile";
 import { Action, TileStatus, UnitType } from "../utils/Enums";
 import WorldMap from "./WorldMap";
 import { Player } from "./Player";
 import { Unit } from "./Unit";
 import { GLTFLoader } from "three/examples/jsm/Addons.js";
-import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
-import { meshesToImport } from "../utils/Utils";
+import { getColorByTeamIndex, meshesToImport } from "../utils/Utils";
 
 //move with unit fatigue
 const MOVEMENT = 4;
@@ -22,25 +21,24 @@ export class CombatSystem {
     selectedAction: Action = Action.SELECT_TILE;
     currentPath: Array<Tile>;
     currentUnitIndex: number;
-    geometries: Map<UnitType, BufferGeometry>
+    clock: Clock;
 
     constructor(game: Game) {
         this.game = game;
-        this.geometries = new Map();
+        this.clock = new Clock()
     }
     async setMap(currentMap: WorldMap): Promise<void> {
         // GLTFLoader is asynchronous. Either you pass callbacks around, or one uses loadAsync + async/await.
         // Here the second approach is used and await until everything is loaded
-        await this.instantiateMeshes();
         this.currentMap = currentMap;
 
         this.players.push(new Player('heroes', 0));
         //this.players.push(new Player('antiheroes', 1));
-        this.spawnUnit(currentMap, 0);
-        this.spawnUnit(currentMap, 1);
-        this.spawnUnit(currentMap, 1);
-        this.spawnUnit(currentMap, 1);
-        this.spawnUnit(currentMap, 1);
+        await this.createUnit(UnitType.WOMEN, currentMap, 0);
+        await this.createUnit(UnitType.FROG, currentMap, 1);
+        await this.createUnit(UnitType.SKELETON,currentMap, 1);
+        await this.createUnit(UnitType.FROG,currentMap, 1);
+        await this.createUnit(UnitType.DRAGON,currentMap, 1);
         this.unitCombatTurn();
     }
     cleanCurrentPath() {
@@ -54,39 +52,36 @@ export class CombatSystem {
             element.setTileStatus(TileStatus.PATH)
         });
     }
-    async instantiateMeshes(): Promise<void> {
+    async createUnit(unitType: UnitType, currentMap: WorldMap, team: number): Promise<void> {
+        let tile = currentMap.getRandomNonObstacleTileForTeam(team);
+        if (tile.height == -99) tile = currentMap.getRandomNonObstacleTileForTeam(team);
+        const position: Vector3 = this.game.getMeshById(tile.id)['position'];
         const loader = new GLTFLoader();
-        await Promise.all(meshesToImport.map(async (mesh) => {
-            const gltf = await loader.loadAsync(mesh.path, (xhr) => { console.log((xhr.loaded / xhr.total * 100) + '% loaded'); });
-            // Collect all the per-file BufferGeometries by traversing all the scene(s) in the file, and then  
-            // merge them into one single BufferGeometry that is stored in the geometries map
-            const bufferGeoms: BufferGeometry[] = [];
-            const traverseCb = (obj: Object3D) => {
-                if (obj['geometry'] && obj['geometry'].isBufferGeometry){
-                    bufferGeoms.push(obj['geometry']);
-                }
-            };
-            gltf.scenes.forEach((scene) => scene.traverse((obj) => traverseCb(obj)));
-            const merged = BufferGeometryUtils.mergeGeometries(bufferGeoms, false);
-            this.geometries.set(mesh.type, merged);
-        }));
-    }
-    spawnUnit(currentMap: WorldMap, team: number): void {
-        let randomTile = currentMap.getRandomNonObstacleTileForTeam(team);
-        if (randomTile.height == -99) randomTile = currentMap.getRandomNonObstacleTileForTeam(team);
-        const position: Vector3 = this.game.getMeshById(randomTile.id)['position']
-        this.createUnit(randomTile, team, new Vector2(position.x, position.z))
-    }
-    createUnit(tile: Tile, team: number, position: Vector2): void {
-        tile.unit = new Unit(this.currentMap, team, UnitType.WOMEN, 30, 2);
+
+        const mesh = meshesToImport.find(unit => unit.type == unitType);
+        if (!mesh) return;
+
+        const gltf = await loader.loadAsync(mesh.path, (xhr) => { console.log((xhr.loaded / xhr.total * 100) + '% loaded'); });
+        gltf.animations.forEach((animation: AnimationClip) => {
+            this.game.mixer = new AnimationMixer(gltf.scene);
+            const clip = this.game.mixer.clipAction(animation);
+            clip.reset().play();
+        })
+        
+        tile.unit = new Unit(this.currentMap, team, unitType, 30, 2);
         tile.unit.tile = tile;
         tile.hasObstacle = true;
-        const geometry = this.geometries.get(tile.unit.type);
-        if (!geometry) return;
-        const mesh: Mesh = tile.unit.createMesh(geometry, position);
-        mesh.userData = tile.unit;
-        tile.unit.id = mesh.uuid;
-        this.game.scene.add(mesh);
+        gltf.scene.userData = tile.unit;
+        const color = getColorByTeamIndex(team);
+        const material = new MeshBasicMaterial({ color });
+        gltf.scene.castShadow = true;
+        gltf.scene.receiveShadow = true;
+        gltf.scene.name = 'Unit';
+        gltf.scene['position'].set(position.x, tile.height, position.z);
+        gltf.scene.userData['pendingMovements'] = []
+        tile.unit.id = gltf.scene.uuid;
+
+        this.game.scene.add(gltf.scene);
     }
     moveUnit(originTile: Tile, targetTile: Tile): void {
         this.game.moveUnitMeshToTile(this.currentPath);

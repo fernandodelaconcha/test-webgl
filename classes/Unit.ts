@@ -1,5 +1,4 @@
-import { BufferGeometry, Mesh, MeshBasicMaterial, Vector2 } from "three";
-import { getColorByTeamIndex } from "../utils/Utils";
+import { BufferGeometry, Mesh } from "three";
 import { AIProfile, UnitType } from "../utils/Enums";
 import Tile from "./Tile";
 import { UnitAI } from "./UnitAI";
@@ -38,24 +37,10 @@ export class Unit {
         health.innerText = `${this.currentHp} / ${this.maxHp}`;
         attack.innerText = this.attack.toString();
     }
-    createMesh(geometry: BufferGeometry, position: Vector2): Mesh {
-        const geo = geometry;
-        const color = getColorByTeamIndex(this.team);
-        const mesh = new Mesh(geo, new MeshBasicMaterial({ color }));
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        mesh.name = 'Tile';
-        mesh['position'].set(position.x, this.tile.height, position.y);
-        mesh.userData = {
-            pendingMovements: []
-        }
-        return mesh;
-    }
     updateUnitMovement(object: Mesh, delta: number) {
       const pendingMovements: Array<pendingMovement> = object.userData.pendingMovements;
       if (!pendingMovements || pendingMovements.length == 0) return;
       const pendingMovement = pendingMovements[0];
-      console.log(pendingMovement.target.y)
       object.lookAt(pendingMovement.target.x, object.position.y, pendingMovement.target.z);
   
       pendingMovement.start.lerp(pendingMovement.path, pendingMovement.alpha)
