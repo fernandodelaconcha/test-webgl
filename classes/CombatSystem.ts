@@ -1,5 +1,5 @@
 import { Game } from "./Game";
-import { BufferGeometry, Vector2, Vector3, Object3D } from "three";
+import { BufferGeometry, Vector2, Vector3, Object3D, Mesh } from "three";
 import Tile from "./Tile";
 import { Action, TileStatus, UnitType } from "../utils/Enums";
 import WorldMap from "./WorldMap";
@@ -56,10 +56,7 @@ export class CombatSystem {
     }
     async instantiateMeshes(): Promise<void> {
         const loader = new GLTFLoader();
-        // Make explicit the scope "this" refers to (inside the arrow function + Promise (async) is not clear what "this" refers to) 
-        // For each mesh, create a Promise (with async), inside it wait until loaded the file, and await for all the meshes to be loaded
         await Promise.all(meshesToImport.map(async (mesh) => {
-            console.log(mesh.path)
             const gltf = await loader.loadAsync(mesh.path, (xhr) => { console.log((xhr.loaded / xhr.total * 100) + '% loaded'); });
             // Collect all the per-file BufferGeometries by traversing all the scene(s) in the file, and then  
             // merge them into one single BufferGeometry that is stored in the geometries map
@@ -70,9 +67,7 @@ export class CombatSystem {
                 }
             };
             gltf.scenes.forEach((scene) => scene.traverse((obj) => traverseCb(obj)));
-            // console.log(bufferGeoms); // Here you will see each file has multiple BufferGeometries in it
             const merged = BufferGeometryUtils.mergeGeometries(bufferGeoms, false);
-            // console.log('Merged BufferGeometry: ', merged);
             this.geometries.set(mesh.type, merged);
         }));
     }
@@ -83,12 +78,13 @@ export class CombatSystem {
         this.createUnit(randomTile, team, new Vector2(position.x, position.z))
     }
     createUnit(tile: Tile, team: number, position: Vector2): void {
-        tile.unit = new Unit(this.currentMap, team, UnitType.DRAGON, 30, 2);
+        tile.unit = new Unit(this.currentMap, team, UnitType.WOMEN, 30, 2);
         tile.unit.tile = tile;
         tile.hasObstacle = true;
         const geometry = this.geometries.get(tile.unit.type);
         if (!geometry) return;
-        const mesh = tile.unit.createMesh(geometry, position);
+        const mesh: Mesh = tile.unit.createMesh(geometry, position);
+        mesh.userData = tile.unit;
         tile.unit.id = mesh.uuid;
         this.game.scene.add(mesh);
     }

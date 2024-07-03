@@ -30,7 +30,7 @@ export enum TileStatus {
     ATTACKZONE,
     ATTACKTARGET,
     TARGET,
-    FOV
+    FOW
 }
 
 export enum Action {

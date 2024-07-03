@@ -3,7 +3,6 @@ import Tile from "./Tile";
 import { TileStatus } from "../utils/Enums";
 import { Mesh } from "three";
 import { Unit } from "./Unit";
-import { pendingMovement } from "../utils/Utils";
 import { Player } from "./Player";
 
 export class Game {
@@ -76,8 +75,8 @@ export class Game {
       if (!(object instanceof Mesh)) return;
       if (object.userData instanceof Tile) {
         this.updateTileColor(object);
-      } else if (object.userData.pendingMovements && object.userData.pendingMovements.length > 0) {
-        this.updateUnitMovement(object, delta);
+      } else if (object.userData instanceof Unit) {
+        object.userData.render(object, delta);
       }
     });
     this.renderer.render(this.scene, this.camera);
@@ -85,7 +84,7 @@ export class Game {
   updateTileColor(object: Mesh) {
     const material = object.material as MeshPhysicalMaterial;
     switch (object.userData.status) {
-      case TileStatus.FOV:
+      case TileStatus.FOW:
         material.color.setHex(0x000000);
         break;
       case TileStatus.TARGET:
@@ -114,27 +113,6 @@ export class Game {
         break;
     }
   }
-  updateUnitMovement(object: Mesh, delta: number) {
-    const pendingMovements: Array<pendingMovement> = object.userData.pendingMovements
-    const pendingMovement = pendingMovements[0];
-    object.lookAt(pendingMovement.target)
-
-    pendingMovement.start.lerp(pendingMovement.path, pendingMovement.alpha)
-    object.position.x += (pendingMovement.start.x / 6);
-    object.position.y += (pendingMovement.start.y / 6);
-    object.position.z += (pendingMovement.start.z / 6);
-
-    if (pendingMovement.alpha < 1) {
-      pendingMovement.alpha += delta;
-    } else {
-      
-      object.position.x += (pendingMovement.start.x - pendingMovement.path.x)
-      object.position.y += (pendingMovement.start.y - pendingMovement.path.y)
-      object.position.z += (pendingMovement.start.z - pendingMovement.path.z)
-
-      object.userData.pendingMovements.shift();
-    }
-  }
   moveUnitMeshToTile(tiles: Array<Tile>) {
     const unit: Unit = tiles[0].unit as Unit;
     let originTileMesh: Mesh;
@@ -155,7 +133,7 @@ export class Game {
       path: targetIndex.sub(originIndex),
       start: new Vector3(),
       alpha: 0,
-      target: new Vector3(targetTileMesh['position'].x, targetTileMesh['position'].y * 2, targetTileMesh['position'].z)
+      target: targetTileMesh.position
     })
   }
   cleanUnitMesh(id: string): void {
