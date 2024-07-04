@@ -1,6 +1,6 @@
-import { ACESFilmicToneMapping, AnimationMixer, Color, DirectionalLight, MeshPhysicalMaterial, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
+import { ACESFilmicToneMapping, AnimationAction, AnimationMixer, Color, DirectionalLight, Group, MeshPhysicalMaterial, Object3DEventMap, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
 import Tile from "./Tile";
-import { TileStatus } from "../utils/Enums";
+import { TileStatus, UnitType } from "../utils/Enums";
 import { Mesh } from "three";
 import { Unit } from "./Unit";
 import { Player } from "./Player";
@@ -14,7 +14,9 @@ export class Game {
   moonLight: DirectionalLight;
   isGameOver: boolean;
   players: Array<Player> = [];
-  mixer: AnimationMixer;
+  mixers: Array<AnimationMixer> = [];
+  animations: Map<UnitType, Array<AnimationAction>>;
+  models: Map<UnitType, Group<Object3DEventMap>>;
 
   constructor(canvas: HTMLElement, innerWidth: number, innerHeight: number, near: number = .1, far: number = 1000) {
     this.scene = new Scene();
@@ -26,6 +28,8 @@ export class Game {
       antialias: true,
       alpha: true
     });
+    this.animations = new Map();
+    this.models = new Map();
     this.setRendererOptions(innerWidth, innerHeight);
     this.sunLight = this.addLight("#FFCB8E", 3.5, new Vector3(10, 20, 10));
     this.moonLight = this.addLight("#77ccff", 0, new Vector3(-10, 20, 10));
@@ -72,9 +76,9 @@ export class Game {
   }
   render(delta: number): void {
     delta /= 100;
-    if (this.mixer) {
-        this.mixer.update(delta)
-    }
+    this.mixers.forEach((mixer) => {
+        mixer.update(delta * .5)
+    })
     this.scene.children.forEach((object) => {
       if (object.userData instanceof Tile) {
         this.updateTileColor(object as Mesh);
