@@ -1,11 +1,11 @@
 import { Game } from "./Game";
-import { Vector3, AnimationClip, AnimationMixer, Clock, Group, Object3DEventMap, AnimationAction } from "three";
+import { Vector3, AnimationClip, AnimationMixer, Clock, Object3D } from "three";
 import Tile from "./Tile";
 import { Action, TileStatus, UnitType } from "../utils/Enums";
 import WorldMap from "./WorldMap";
 import { Player } from "./Player";
 import { Unit } from "./Unit";
-import { GLTFLoader } from "three/examples/jsm/Addons.js";
+import { GLTFLoader, SkeletonUtils } from "three/examples/jsm/Addons.js";
 
 import { meshesToImport } from "../utils/Utils";
 
@@ -35,7 +35,7 @@ export class CombatSystem {
         //this.players.push(new Player('antiheroes', 1));
         this.createUnit(UnitType.HUMAN, currentMap, 0);
         this.createUnit(UnitType.FROG, currentMap, 1);
-        this.createUnit(UnitType.SKELETON, currentMap, 1);
+        this.createUnit(UnitType.WOMAN, currentMap, 1);
         this.createUnit(UnitType.SKELETON, currentMap, 1);
         this.createUnit(UnitType.DRAGON, currentMap, 1);
         this.unitCombatTurn();
@@ -56,18 +56,16 @@ export class CombatSystem {
         await Promise.all(meshesToImport.map(async (mesh) => {
             const loader = new GLTFLoader();
             const gltf = await loader.loadAsync(mesh.path, (xhr) => { console.log((xhr.loaded / xhr.total * 100) + '% loaded'); });
-            const animations: Array<AnimationAction> = [];
+            const animations: Map<string, AnimationClip> = new Map();
             gltf.animations.forEach((animation: AnimationClip) => {
-                const mixer = new AnimationMixer(gltf.scene);
-                this.game.mixers.push(mixer);
-                const clip = mixer.clipAction(animation);
-                animations.push(clip);
-                clip.reset().play()
+                animations.set(animation.name, animation);
             })
             this.game.models.set(mesh.type, gltf.scene);
+            this.game.animations.set(mesh.type, gltf.animations);
         }));
     }
 
+    //TODO: pair mixer with model for when destroying unit increase performance, maybe all inside unit class
     createUnit(unitType: UnitType, currentMap: WorldMap, team: number): void {
         let tile = currentMap.getRandomNonObstacleTileForTeam(team);
         if (tile.height == -99) tile = currentMap.getRandomNonObstacleTileForTeam(team);
@@ -78,7 +76,10 @@ export class CombatSystem {
         tile.unit = new Unit(this.currentMap, team, unitType, 30, 2);
         tile.unit.tile = tile;
         tile.hasObstacle = true;
-        const model: Group<Object3DEventMap> = new Group().copy(this.game.models.get(unitType) as Group<Object3DEventMap>);
+        const model: Object3D = SkeletonUtils.clone(this.game.models.get(unitType) as Object3D);
+        const mixer = new AnimationMixer(model);
+        this.game.mixers.push(mixer)
+        model.animations = this.game.animations.get(unitType) as AnimationClip[];
         model.userData = tile.unit;
         // const color = getColorByTeamIndex(team);
         // const material = new MeshBasicMaterial({ color });
@@ -86,9 +87,15 @@ export class CombatSystem {
         model.receiveShadow = true;
         model.name = 'Unit';
         model['position'].set(position.x, tile.height, position.z);
-        model.userData['pendingMovements'] = []
+        model.userData['pendingMovements'] = [];
         tile.unit.id = model.uuid;
+
+        model.animations.forEach((animation: AnimationClip) => {
+            const clip = mixer.clipAction(animation);
+            clip.reset().play();
+        })
         this.game.scene.add(model);
+
     }
     moveUnit(originTile: Tile, targetTile: Tile): void {
         this.game.moveUnitMeshToTile(this.currentPath);

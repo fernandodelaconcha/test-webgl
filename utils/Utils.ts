@@ -132,5 +132,5 @@ export const meshesToImport: Array<MeshToImport> = [
   { type: UnitType.HUMAN, path: 'assets/meshes/human.glb' },
   { type: UnitType.DRAGON, path: 'assets/meshes/dragon.glb' },
   { type: UnitType.SKELETON, path: 'assets/meshes/skeleton.glb' },
-  { type: UnitType.WOMEN, path: 'assets/meshes/women.glb' }
+  { type: UnitType.WOMAN, path: 'assets/meshes/women.glb' }
 ];

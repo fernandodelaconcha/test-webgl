@@ -1,4 +1,4 @@
-import { ACESFilmicToneMapping, AnimationAction, AnimationMixer, Color, DirectionalLight, Group, MeshPhysicalMaterial, Object3DEventMap, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
+import { ACESFilmicToneMapping, AnimationClip, AnimationMixer, Color, DirectionalLight, Group, MeshPhysicalMaterial, Object3DEventMap, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
 import Tile from "./Tile";
 import { TileStatus, UnitType } from "../utils/Enums";
 import { Mesh } from "three";
@@ -15,7 +15,7 @@ export class Game {
   isGameOver: boolean;
   players: Array<Player> = [];
   mixers: Array<AnimationMixer> = [];
-  animations: Map<UnitType, Array<AnimationAction>>;
+  animations: Map<UnitType, Array<AnimationClip>>;
   models: Map<UnitType, Group<Object3DEventMap>>;
 
   constructor(canvas: HTMLElement, innerWidth: number, innerHeight: number, near: number = .1, far: number = 1000) {
@@ -77,7 +77,7 @@ export class Game {
   render(delta: number): void {
     delta /= 100;
     this.mixers.forEach((mixer) => {
-        mixer.update(delta * .5)
+      mixer.update(delta * .5)
     })
     this.scene.children.forEach((object) => {
       if (object.userData instanceof Tile) {
