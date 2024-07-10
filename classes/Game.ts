@@ -1,12 +1,14 @@
-import { ACESFilmicToneMapping, AnimationClip, AnimationMixer, Color, DirectionalLight, Group, MeshPhysicalMaterial, Object3DEventMap, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
+import { ACESFilmicToneMapping, AnimationClip, AnimationMixer, Color, DirectionalLight, Group, MeshPhysicalMaterial, Object3D, Object3DEventMap, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
 import Tile from "./Tile";
-import { TileStatus, UnitType } from "../utils/Enums";
+import { AnimationType, TileStatus, UnitType } from "../utils/Enums";
 import { Mesh } from "three";
 import { Unit } from "./Unit";
 import { Player } from "./Player";
+import { GLTFLoader, SkeletonUtils } from "three/examples/jsm/Addons.js";
+import WorldMap from "./WorldMap";
+import { meshesToImport } from "../utils/Utils";
 
 export class Game {
-
   scene: Scene;
   camera: PerspectiveCamera;
   renderer: WebGLRenderer;
@@ -36,6 +38,22 @@ export class Game {
     this.addPlayer('Player');
     this.addPlayer('Enemy');
   }
+
+  async loadModels(): Promise<void> {
+    await Promise.all(meshesToImport.map(async (mesh) => {
+      const loader = new GLTFLoader();
+      const gltf = await loader.loadAsync(mesh.path, (xhr) => {
+        console.log(`model: ${UnitType[mesh.type]} loading: ${(xhr.loaded / xhr.total * 100)}% loaded`);
+      });
+      const animations: Map<string, AnimationClip> = new Map();
+      gltf.animations.forEach((animation: AnimationClip) => {
+        animations.set(animation.name, animation);
+      })
+      this.models.set(mesh.type, gltf.scene);
+      this.animations.set(mesh.type, gltf.animations);
+    }));
+  }
+
   setRendererOptions(innerWidth: number, innerHeight: number): void {
     this.renderer.setPixelRatio(devicePixelRatio);
     this.renderer.setSize(innerWidth, innerHeight);
@@ -76,14 +94,12 @@ export class Game {
   }
   render(delta: number): void {
     delta /= 100;
-    this.mixers.forEach((mixer) => {
-      mixer.update(delta * .5)
-    })
     this.scene.children.forEach((object) => {
       if (object.userData instanceof Tile) {
         this.updateTileColor(object as Mesh);
       } else if (object.userData instanceof Unit) {
         object.userData.render(object as Mesh, delta);
+        object.userData.animationMixer.update(delta * .5)
       }
     });
     this.renderer.render(this.scene, this.camera);
@@ -120,6 +136,25 @@ export class Game {
         break;
     }
   }
+  createUnit(unitType: UnitType, currentMap: WorldMap, team: number): void {
+    let tile = currentMap.getRandomNonObstacleTileForTeam(team);
+    if (tile.height == -99) tile = currentMap.getRandomNonObstacleTileForTeam(team);
+    const position: Vector3 = this.getMeshById(tile.id)['position'];
+
+    const mesh = meshesToImport.find(unit => unit.type == unitType);
+    if (!mesh) return;
+    tile.unit = new Unit(currentMap, team, unitType, 30, 2);
+    tile.unit.tile = tile;
+    tile.hasObstacle = true;
+    const model: Object3D = SkeletonUtils.clone(this.models.get(unitType) as Object3D);
+
+    tile.unit.createModelData(model, position)
+    tile.unit.createAnimationData(this.animations.get(unitType) as AnimationClip[])
+
+    this.scene.add(model);
+    tile.unit.playAnimation(AnimationType.IDLE)
+  }
+
   moveUnitMeshToTile(tiles: Array<Tile>) {
     const unit: Unit = tiles[0].unit as Unit;
     let originTileMesh: Mesh;

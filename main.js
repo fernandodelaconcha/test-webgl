@@ -12,6 +12,7 @@ const FPS = 30;
 const INTERVAL = 1000 / FPS;
 
 let game = new Game(document.querySelector('#bg'), innerWidth / 1.5, innerHeight * .9 / 1.2);
+await game.loadModels();
 let controls = new Controls(game);
 
 const sizeInput = document.querySelector("#size");
@@ -32,7 +33,7 @@ button.addEventListener('click', () => {
   game.cleanScene();
   currentMap = mapGenerator.createMap(shape, TerrainType.PLAINS, size, seaLevel, maxHeight, minHeight, seed);
   controls.setMap(currentMap);
-})  
+})
 
 //world generation
 let pmrem = new PMREMGenerator(game.renderer);
@@ -53,7 +54,6 @@ const mapGenerator = new MapGenerator(envmap, game.scene);
 
 //kind of swamp
 let currentMap = mapGenerator.createMap(MapShape.BOX, TerrainType.PLAINS, 28, 3, 5, 3);
-
 controls.setMap(currentMap);
 
 //game loop

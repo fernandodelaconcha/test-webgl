@@ -54,3 +54,12 @@ export enum UnitType {
     FROG,
     WOMAN
 }
+
+export enum AnimationType {
+    IDLE,
+    WALK,
+    RUN,
+    ATTACK,
+    HIT,
+    DEATH
+}
