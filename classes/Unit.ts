@@ -44,7 +44,7 @@ export class Unit {
     model.userData['pendingMovements'] = [];
     this.id = model.uuid;
   }
-  
+
   createAnimationData(animations: Array<AnimationClip>) {
     animations.forEach((animation: AnimationClip) => {
       const clip: AnimationAction = this.animationMixer.clipAction(animation);
@@ -55,9 +55,14 @@ export class Unit {
   }
 
   playAnimation(animationType: AnimationType) {
+    if (this.animationsMap.get(animationType) == this.currentAnimation) return;
+    if (this.currentAnimation) {
+      this.currentAnimation.stop();
+    }
     const clip = this.animationsMap.get(animationType);
     if (!clip) return;
     clip.reset().play();
+    this.currentAnimation = clip;
   }
 
   displayUnitOnInterface() {
@@ -93,10 +98,15 @@ export class Unit {
     }
   }
 
+  //todo now toggling between idle and walk, design system to play multiple animations
   render(object: Mesh, delta: number) {
     if (object.userData.pendingMovements && object.userData.pendingMovements.length > 0) {
       this.updateUnitMovement(object, delta);
+      this.playAnimation(AnimationType.WALK)
+    } else {
+      this.playAnimation(AnimationType.IDLE)
     }
+    object.userData.animationMixer.update(delta * .5);
   }
 
 }

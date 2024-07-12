@@ -1,6 +1,6 @@
 import { ACESFilmicToneMapping, AnimationClip, AnimationMixer, Color, DirectionalLight, Group, MeshPhysicalMaterial, Object3D, Object3DEventMap, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from "three";
 import Tile from "./Tile";
-import { AnimationType, TileStatus, UnitType } from "../utils/Enums";
+import { TileStatus, UnitType } from "../utils/Enums";
 import { Mesh } from "three";
 import { Unit } from "./Unit";
 import { Player } from "./Player";
@@ -99,7 +99,6 @@ export class Game {
         this.updateTileColor(object as Mesh);
       } else if (object.userData instanceof Unit) {
         object.userData.render(object as Mesh, delta);
-        object.userData.animationMixer.update(delta * .5)
       }
     });
     this.renderer.render(this.scene, this.camera);
@@ -152,7 +151,6 @@ export class Game {
     tile.unit.createAnimationData(this.animations.get(unitType) as AnimationClip[])
 
     this.scene.add(model);
-    tile.unit.playAnimation(AnimationType.IDLE)
   }
 
   moveUnitMeshToTile(tiles: Array<Tile>) {
